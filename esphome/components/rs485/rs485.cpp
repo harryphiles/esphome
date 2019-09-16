@@ -18,6 +18,8 @@ void RS485Component::dump_config() {
     ESP_LOGCONFIG(TAG, "  Data prefix: 0x%02X"    , prefix_ );
     ESP_LOGCONFIG(TAG, "  Data suffix: 0x%02X"    , suffix_ );
     ESP_LOGCONFIG(TAG, "  Data checksum: %s"      , YESNO(checksum_));
+    ESP_LOGCONFIG(TAG, "  Listener count: %d"     , listeners_.size() );
+    ESP_LOGCONFIG(TAG, "  Status request interval: %u", update_interval_ );
 
 }
 
@@ -84,6 +86,11 @@ void RS485Component::loop() {
     }
 }
 
+void RS485Component::update() {
+    // 현재 상태 요청
+    ESP_LOGD(TAG, "RS485Component::update(): Request current state...");
+}
+
 void RS485Component::write_byte(uint8_t data) {
     Serial.write(data);
     ESP_LOGD(TAG, "Write byte-> 0x%02X", data);
@@ -131,10 +138,15 @@ bool RS485Component::validate(const uint8_t *data, const num_t len) {
 }
 
 uint8_t RS485Component::make_checksum(const uint8_t *data, const num_t len) const {
-    uint8_t crc = data[0] == prefix_ ? 0 : prefix_;
-    for(num_t i=0; i<len; i++)
-        crc ^= data[i];
-    return crc;
+    if (this->checksum_f_.has_value()) {
+        return (*checksum_f_)(prefix_, data[0] == prefix_ ? &data[1] : data, data[0] == prefix_ ? len-1 : len);
+    }
+
+    // uint8_t crc = data[0] == prefix_ ? 0 : prefix_;
+    // for(num_t i=0; i<len; i++)
+    //     crc ^= data[i];
+    // return crc;
+    return 0;
 }
 
 

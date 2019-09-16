@@ -13,7 +13,6 @@ namespace rs485 {
 
 typedef unsigned short num_t;
 
-
 /** 상태 반영용 HEX Struct */
 struct hex_t
 {
@@ -34,16 +33,26 @@ class RS485Listener {
         void set_parent(RS485Component *parent) { parent_ = parent; }
         void set_monitor(bool monitor) { monitor_ = monitor; }
         bool is_monitor() { return monitor_; }
+        void set_command_state(std::vector<uint8_t> command_state) { command_state_ = command_state; }
+        bool has_command_state() { return command_state_.size() > 0; }
+        std::vector<uint8_t> *get_state_command() { return &command_state_; }
 
     protected:
         RS485Component *parent_{nullptr};
         bool monitor_{false};
+        std::vector<uint8_t> command_state_;
 };
 
 /** 
  * RS485 Core Component
+ * 
+ * @param baud Baud Rate
+ * @param data Data bits
+ * @param parity Parity(0: No parity, 2: Even, 3: Odd)
+ * @param stop Stop bits
+ * @param rxWait RX Receive Timeout (mSec)
  */
-class RS485Component : public Component {
+class RS485Component : public PollingComponent {
     public:
         RS485Component(int baud, num_t data=8, num_t parity=0, num_t stop=1, num_t rxWait=15) {
             baud_   = baud;
@@ -51,7 +60,7 @@ class RS485Component : public Component {
             parity_ = parity;
             stop_   = stop;
             rxWait_ = rxWait;
-        }
+        } 
         /** 시작부(수신시 Check, 발신시 Append) */
         void set_prefix(uint8_t prefix) { prefix_ = prefix; }
 
@@ -67,6 +76,7 @@ class RS485Component : public Component {
         void dump_config() override;
         void setup() override;
         void loop() override;
+        void update() override;
 
         void write_byte(uint8_t data);
         void write_array(const uint8_t *data, const num_t len);
@@ -78,15 +88,18 @@ class RS485Component : public Component {
             listener->set_parent(this);
             this->listeners_.push_back(listener);
         }
+        /** Checksum Lambda */
+        void set_checksum_lambda(std::function<uint8_t(const uint8_t prefix, const uint8_t *data, const num_t len)> &&f) { checksum_f_ = f; checksum_ = true; }
 
     protected:
         std::vector<RS485Listener *> listeners_;
+        optional<std::function<uint8_t(const uint8_t prefix, const uint8_t *data, const num_t len)>> checksum_f_;
 
-        int baud_;      // Baud Rate
-        num_t data_;    // Data bits
-        num_t parity_;  // Parity(0: No parity, 2: Even, 3: Odd)
-        num_t stop_;    // Stop bits
-        num_t rxWait_;  // RX Receive Timeout (mSec)
+        int baud_;
+        num_t data_;
+        num_t parity_;
+        num_t stop_;
+        num_t rxWait_;
 
         uint8_t prefix_{0x00};
         uint8_t suffix_{0x00}; 
