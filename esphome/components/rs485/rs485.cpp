@@ -141,12 +141,13 @@ uint8_t RS485Component::make_checksum(const uint8_t *data, const num_t len) cons
     if (this->checksum_f_.has_value()) {
         return (*checksum_f_)(prefix_, data[0] == prefix_ ? &data[1] : data, data[0] == prefix_ ? len-1 : len);
     }
-
-    // uint8_t crc = data[0] == prefix_ ? 0 : prefix_;
-    // for(num_t i=0; i<len; i++)
-    //     crc ^= data[i];
-    // return crc;
-    return 0;
+    else {
+        // CheckSum8 Xor (Default)
+        uint8_t crc = data[0] == prefix_ ? 0 : prefix_;
+        for(num_t i=0; i<len; i++)
+            crc ^= data[i];
+        return crc;
+    }
 }
 
 

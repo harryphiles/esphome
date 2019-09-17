@@ -5,6 +5,7 @@
 #include <vector>
 #include "esphome/core/esphal.h"
 #include "esphome/core/component.h"
+#include "esphome/core/log.h"
 
 #define BUFFER_SIZE 128
 
@@ -22,6 +23,7 @@ struct hex_t
 
 
 class RS485Component;
+class RS485Device;
 
 /**
  * RS485 Listener
@@ -35,12 +37,35 @@ class RS485Listener {
         bool is_monitor() { return monitor_; }
         void set_command_state(std::vector<uint8_t> command_state) { command_state_ = command_state; }
         bool has_command_state() { return command_state_.size() > 0; }
-        std::vector<uint8_t> *get_state_command() { return &command_state_; }
+        std::vector<uint8_t> *get_command_state() { return &command_state_; }
 
     protected:
         RS485Component *parent_{nullptr};
         bool monitor_{false};
         std::vector<uint8_t> command_state_;
+
+};
+
+/**
+ * RS485 Device
+ */
+class RS485Device {
+    public:
+        void set_device(hex_t device) { device_ = device; }
+        void set_sub_device(hex_t sub_device) { sub_device_ = sub_device; }
+        void set_state_on(hex_t state_on) { state_on_ = state_on; }
+        void set_state_off(hex_t state_off) { state_off_ = state_off; }
+        void set_command_on(std::vector<uint8_t> command_on) { command_on_ = command_on; }
+        void set_command_off(std::vector<uint8_t> command_off) { command_off_ = command_off; }
+
+    protected:
+        hex_t device_;
+        hex_t sub_device_;
+        hex_t state_on_;
+        hex_t state_off_;
+        std::vector<uint8_t> command_on_;
+        std::vector<uint8_t> command_off_;
+
 };
 
 /** 
@@ -67,10 +92,13 @@ class RS485Component : public PollingComponent {
         /** 종료부(수신시 Check, 발신시 Append) */
         void set_suffix(uint8_t suffix) { suffix_ = suffix; }
 
-        /** CheckSum8 Xor(수신시 Check, 발신시 Append) */
+        /** CheckSum 사용 여부 (수신시 Check, 발신시 Append) */
         void set_checksum(bool checksum) { checksum_ = checksum; }
 
-        /** 체크섬 계산 */
+        /** CheckSum Lambda */
+        void set_checksum_lambda(std::function<uint8_t(const uint8_t prefix, const uint8_t *data, const num_t len)> &&f) { checksum_f_ = f; checksum_ = true; }
+
+        /** CheckSum Calc */
         uint8_t make_checksum(const uint8_t *data, const num_t len) const;
 
         void dump_config() override;
@@ -88,8 +116,6 @@ class RS485Component : public PollingComponent {
             listener->set_parent(this);
             this->listeners_.push_back(listener);
         }
-        /** Checksum Lambda */
-        void set_checksum_lambda(std::function<uint8_t(const uint8_t prefix, const uint8_t *data, const num_t len)> &&f) { checksum_f_ = f; checksum_ = true; }
 
     protected:
         std::vector<RS485Listener *> listeners_;
