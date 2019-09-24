@@ -7,12 +7,13 @@
 namespace esphome {
 namespace rs485 {
 
-class RS485LightOutput : public light::LightOutput, public RS485Listener, public RS485Device, public Component {
+class RS485LightOutput : public light::LightOutput, public RS485Device {
   public:
     void dump_config() override;
-    bool parse_data(const uint8_t *data, const num_t len) override;
+    void publish(const uint8_t *data, const num_t len) override;
+    void publish(bool state) override { publish_state(state); }
 
-    void set_light(light::LightState *light) { name_ = &light->get_name(); light_ = light; }
+    void set_light(light::LightState *light) { device_name_ = &light->get_name(); light_ = light; }
 
     light::LightTraits get_traits() override {
       auto traits = light::LightTraits();
@@ -23,17 +24,13 @@ class RS485LightOutput : public light::LightOutput, public RS485Listener, public
     void write_state(light::LightState *state) override {
       bool binary;
       state->current_values_as_binary(&binary);
-      if (binary)
-      this->turn_on();
-      else
-      this->turn_off();
+      if(binary == this->state_) return;
+
+      write_with_header(binary ? &command_on_ : &command_off_);
+      this->state_ = binary;
     }
 
-    void turn_on();
-    void turn_off();
-
   protected:
-    const std::string *name_;
     bool state_{false};
     light::LightState *light_{nullptr};
 

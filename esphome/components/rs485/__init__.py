@@ -1,6 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_BAUD_RATE, CONF_WAIT_TIME, CONF_OFFSET, CONF_DATA, \
+from esphome.const import CONF_ID, CONF_BAUD_RATE, CONF_OFFSET, CONF_DATA, \
                           CONF_UPDATE_INTERVAL, CONF_DEVICE
 from esphome.core import CORE, coroutine
 from esphome.util import SimpleRegistry
@@ -9,7 +9,7 @@ from .const import CONF_DATA_BITS, CONF_PARITY, CONF_STOP_BITS, CONF_PREFIX, CON
                    CONF_CHECKSUM, CONF_CHECKSUM_LAMBDA, CONF_ACK, CONF_RS485_ID, \
                    CONF_PACKET_MONITOR, CONF_PACKET_MONITOR_ID, CONF_SUB_DEVICE, \
                    CONF_STATE_ON, CONF_STATE_OFF, CONF_COMMAND_ON, CONF_COMMAND_OFF, \
-                   CONF_COMMAND_STATE
+                   CONF_COMMAND_STATE, CONF_RX_WAIT, CONF_TX_WAIT, CONF_TX_RETRY_CNT
 
 rs485_ns = cg.esphome_ns.namespace('rs485')
 RS485Component = rs485_ns.class_('RS485Component', cg.Component)
@@ -42,11 +42,11 @@ def state_hex_schema(value):
 # Command HEX: uint8_t[] data, uint8_t[] ack
 COMMAND_HEX_SCHEMA = cv.Schema({
     cv.Required(CONF_DATA): validate_hex_data,
-    cv.Optional(CONF_ACK): validate_hex_data
+    cv.Optional(CONF_ACK, default=[]): validate_hex_data
 })
 def shorthand_command_hex(value):
     value = validate_hex_data(value)
-    return COMMAND_HEX_SCHEMA({CONF_DATA: value})
+    return COMMAND_HEX_SCHEMA({CONF_DATA: value, CONF_ACK: []})
 def command_hex_schema(value):
     if isinstance(value, dict):
         return COMMAND_HEX_SCHEMA(value)
@@ -61,7 +61,9 @@ CONFIG_SCHEMA = cv.All(cv.Schema({
     cv.Optional(CONF_DATA_BITS, default=8): cv.int_range(min=1, max=32),
     cv.Optional(CONF_PARITY, default=0): cv.int_range(min=0, max=3), # 0:No parity, 2:Even, 3:Odd
     cv.Optional(CONF_STOP_BITS, default=1): cv.int_range(min=0, max=1),
-    cv.Optional(CONF_WAIT_TIME, default=10): cv.int_range(min=1, max=2000),
+    cv.Optional(CONF_RX_WAIT, default=10): cv.int_range(min=1, max=2000),
+    cv.Optional(CONF_TX_WAIT): cv.int_range(min=1, max=2000),
+    cv.Optional(CONF_TX_RETRY_CNT): cv.int_range(min=1, max=10),
     cv.Optional(CONF_PREFIX): cv.hex_int,
     cv.Optional(CONF_SUFFIX): cv.hex_int,
     cv.Optional(CONF_CHECKSUM): cv.boolean,
@@ -78,8 +80,13 @@ def to_code(config):
                            config[CONF_DATA_BITS],
                            config[CONF_PARITY],
                            config[CONF_STOP_BITS],
-                           config[CONF_WAIT_TIME])
+                           config[CONF_RX_WAIT])
     yield cg.register_component(var, config)
+
+    if CONF_TX_WAIT in config:
+        cg.add(var.set_tx_wait(config[CONF_TX_WAIT]))
+    if CONF_TX_RETRY_CNT in config:
+        cg.add(var.set_tx_retry_cnt(config[CONF_TX_RETRY_CNT]))
 
     if CONF_PREFIX in config:
         cg.add(var.set_prefix(config[CONF_PREFIX]))
