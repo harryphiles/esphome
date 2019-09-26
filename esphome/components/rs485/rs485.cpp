@@ -15,6 +15,8 @@ void RS485Component::dump_config() {
     ESP_LOGCONFIG(TAG, "  Parity: %d"             , parity_ );
     ESP_LOGCONFIG(TAG, "  Stop bits: %d"          , stop_   );
     ESP_LOGCONFIG(TAG, "  RX Receive Timeout: %d" , rx_wait_ );
+    ESP_LOGCONFIG(TAG, "  TX Transmission Timeout: %d", tx_wait_ );
+    ESP_LOGCONFIG(TAG, "  TX Retry Count: %d"     , tx_retry_cnt_);
     ESP_LOGCONFIG(TAG, "  Data prefix: 0x%02X"    , prefix_ );
     ESP_LOGCONFIG(TAG, "  Data suffix: 0x%02X"    , suffix_ );
     ESP_LOGCONFIG(TAG, "  Data checksum: %s"      , YESNO(checksum_));
@@ -63,7 +65,7 @@ void RS485Component::loop() {
             }
 
         #ifdef ESPHOME_LOG_HAS_VERY_VERBOSE
-            ESP_LOGVV(TAG, "Recieve data-> %s, term time: %dms", hexencode(&rx_buffer_[0], rx_bytesRead_).c_str(), millis() - rx_lastTime_);
+            ESP_LOGVV(TAG, "Recieve data-> %s, Gap Time: %dms", hexencode(&rx_buffer_[0], rx_bytesRead_).c_str(), millis() - rx_lastTime_);
         #else
             #ifdef ESPHOME_LOG_HAS_VERBOSE
             if (!found) {
