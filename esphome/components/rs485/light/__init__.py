@@ -3,8 +3,6 @@ import esphome.config_validation as cv
 from esphome.components import light, rs485
 from esphome.const import CONF_ID, CONF_NAME, CONF_OUTPUT_ID, CONF_DEVICE
 from .. import rs485_ns
-from ..const import CONF_SUB_DEVICE, CONF_STATE_ON, CONF_STATE_OFF, \
-                    CONF_COMMAND_ON, CONF_COMMAND_OFF
 
 DEPENDENCIES = ['rs485']
 RS485LightOutput = rs485_ns.class_('RS485LightOutput', light.LightOutput, cg.Component)

@@ -1,8 +1,7 @@
 #pragma once
 
-#include "esphome/core/component.h"
-#include "esphome/components/light/light_output.h"
 #include "esphome/components/rs485/rs485.h"
+#include "esphome/components/light/light_output.h"
 
 namespace esphome {
 namespace rs485 {
