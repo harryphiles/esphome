@@ -1,5 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
+from esphome import automation
 from esphome.const import CONF_ID, CONF_BAUD_RATE, CONF_OFFSET, CONF_DATA, \
                           CONF_UPDATE_INTERVAL, CONF_DEVICE
 from esphome.core import CORE, coroutine
@@ -13,6 +14,7 @@ from .const import CONF_DATA_BITS, CONF_PARITY, CONF_STOP_BITS, CONF_PREFIX, CON
 
 rs485_ns = cg.esphome_ns.namespace('rs485')
 RS485Component = rs485_ns.class_('RS485Component', cg.Component)
+RS485WriteAction = rs485_ns.class_('RS485WriteAction', automation.Action)
 SerialMonitor = rs485_ns.class_('SerialMonitor')
 num_t_const = rs485_ns.class_('num_t').operator('const')
 uint8_const = cg.uint8.operator('const')
@@ -145,11 +147,13 @@ def register_rs485_device(var, config):
     state_off = yield state_hex_expression(config[CONF_STATE_OFF])
     cg.add(var.set_state_off(state_off))
 
-    command_on = yield command_hex_expression(config[CONF_COMMAND_ON])
-    cg.add(var.set_command_on(command_on))
+    if CONF_COMMAND_ON in config:
+        command_on = yield command_hex_expression(config[CONF_COMMAND_ON])
+        cg.add(var.set_command_on(command_on))
 
-    command_off = yield command_hex_expression(config[CONF_COMMAND_OFF])
-    cg.add(var.set_command_off(command_off))
+    if CONF_COMMAND_OFF in config:
+        command_off = yield command_hex_expression(config[CONF_COMMAND_OFF])
+        cg.add(var.set_command_off(command_off))
 
     if CONF_COMMAND_STATE in config:
         command_state = yield command_hex_expression(config[CONF_COMMAND_STATE])
@@ -176,3 +180,21 @@ def command_hex_expression(conf):
         yield data, ack
     else:
         yield data
+
+@automation.register_action('rs485.write', RS485WriteAction, cv.maybe_simple_value({
+    cv.GenerateID(): cv.use_id(RS485Component),
+    cv.Required(CONF_DATA): cv.templatable(validate_hex_data),
+}, key=CONF_DATA))
+def rs485_write_to_code(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    yield cg.register_parented(var, config[CONF_ID])
+    data = config[CONF_DATA]
+    if isinstance(data, binary_type):
+        data = [char_to_byte(x) for x in data]
+
+    if cg.is_template(data):
+        templ = yield cg.templatable(data, args, cg.std_vector.template(cg.uint8))
+        cg.add(var.set_data_template(templ))
+    else:
+        cg.add(var.set_data_static(data))
+    yield var
