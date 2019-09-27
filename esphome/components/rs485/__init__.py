@@ -16,6 +16,7 @@ rs485_ns = cg.esphome_ns.namespace('rs485')
 RS485Component = rs485_ns.class_('RS485Component', cg.Component)
 RS485WriteAction = rs485_ns.class_('RS485WriteAction', automation.Action)
 SerialMonitor = rs485_ns.class_('SerialMonitor')
+cmd_hex_t = rs485_ns.class_('cmd_hex_t')
 num_t_const = rs485_ns.class_('num_t').operator('const')
 uint8_const = cg.uint8.operator('const')
 uint8_ptr_const = uint8_const.operator('ptr')
@@ -120,8 +121,8 @@ RS485_DEVICE_SCHEMA = cv.Schema({
     cv.Optional(CONF_SUB_DEVICE): state_hex_schema,
     cv.Required(CONF_STATE_ON): state_hex_schema,
     cv.Required(CONF_STATE_OFF): state_hex_schema,
-    cv.Required(CONF_COMMAND_ON): command_hex_schema,
-    cv.Required(CONF_COMMAND_OFF): command_hex_schema,
+    cv.Required(CONF_COMMAND_ON): cv.templatable(command_hex_schema),
+    cv.Required(CONF_COMMAND_OFF): cv.templatable(command_hex_schema),
     cv.Optional(CONF_COMMAND_STATE): command_hex_schema,
 })
 
@@ -148,12 +149,22 @@ def register_rs485_device(var, config):
     cg.add(var.set_state_off(state_off))
 
     if CONF_COMMAND_ON in config:
-        command_on = yield command_hex_expression(config[CONF_COMMAND_ON])
-        cg.add(var.set_command_on(command_on))
+        data = config[CONF_COMMAND_ON]
+        if cg.is_template(data):
+            command_on = yield cg.templatable(data, [], cmd_hex_t)
+            cg.add(var.set_command_on(command_on))
+        else:
+            command_on = yield command_hex_expression(config[CONF_COMMAND_ON])
+            cg.add(var.set_command_on(command_on))
 
     if CONF_COMMAND_OFF in config:
-        command_off = yield command_hex_expression(config[CONF_COMMAND_OFF])
-        cg.add(var.set_command_off(command_off))
+        data = config[CONF_COMMAND_OFF]
+        if cg.is_template(data):
+            command_off = yield cg.templatable(data, [], cmd_hex_t)
+            cg.add(var.set_command_off(command_off))
+        else:
+            command_off = yield command_hex_expression(config[CONF_COMMAND_OFF])
+            cg.add(var.set_command_off(command_off))
 
     if CONF_COMMAND_STATE in config:
         command_state = yield command_hex_expression(config[CONF_COMMAND_STATE])
@@ -176,7 +187,6 @@ def command_hex_expression(conf):
     data = conf[CONF_DATA]
     if CONF_ACK in conf:
         ack = conf[CONF_ACK]
-        #ack = [char_to_byte(x) for x in ack]
         yield data, ack
     else:
         yield data

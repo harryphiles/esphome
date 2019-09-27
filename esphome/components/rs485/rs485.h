@@ -1,11 +1,11 @@
 #pragma once
 
 #include <HardwareSerial.h>
-#include <set>
 #include <vector>
 #include <queue>
-#include "esphome/core/esphal.h"
+#include "esphome/core/automation.h"
 #include "esphome/core/component.h"
+#include "esphome/core/esphal.h"
 
 #define BUFFER_SIZE 128
 #define MAX_TX_PANDING_TIME 3000
@@ -75,8 +75,14 @@ class RS485Device : public RS485Listener, public Component {
         void set_sub_device(hex_t sub_device) { sub_device_ = sub_device; }
         void set_state_on(hex_t state_on) { state_on_ = state_on; }
         void set_state_off(hex_t state_off) { state_off_ = state_off; }
+        
         void set_command_on(cmd_hex_t command_on) { command_on_ = command_on; }
+        void set_command_on(std::function<cmd_hex_t()> command_on_func) { command_on_func_ = command_on_func; }
+        const cmd_hex_t* get_command_on() { if(command_on_func_.has_value()) command_on_ = (*command_on_func_)(); return &command_on_; }
+        
         void set_command_off(cmd_hex_t command_off) { command_off_ = command_off; }
+        void set_command_off(std::function<cmd_hex_t()> command_off_func) { command_off_func_ = command_off_func; }
+        const cmd_hex_t* get_command_off() { if(command_off_func_.has_value()) command_off_ = (*command_off_func_)(); return &command_off_; }
 
         void write_with_header(const cmd_hex_t *cmd);
         void callback() { tx_pending_ = false; tx_start_time_ = millis(); }
@@ -101,7 +107,9 @@ class RS485Device : public RS485Listener, public Component {
         hex_t state_on_;
         hex_t state_off_;
         cmd_hex_t command_on_;
+        optional<std::function<cmd_hex_t()>> command_on_func_{};
         cmd_hex_t command_off_;
+        optional<std::function<cmd_hex_t()>> command_off_func_{};
 
         unsigned long tx_start_time_{0};
         bool tx_pending_{false};
@@ -171,8 +179,8 @@ class RS485Component : public PollingComponent {
         num_t get_tx_retry_cnt() { return tx_retry_cnt_; }
 
     protected:
-        std::vector<RS485Listener *> listeners_;
-        optional<std::function<uint8_t(const uint8_t prefix, const uint8_t *data, const num_t len)>> checksum_f_;
+        std::vector<RS485Listener *> listeners_{};
+        optional<std::function<uint8_t(const uint8_t prefix, const uint8_t *data, const num_t len)>> checksum_f_{};
 
         int baud_;
         num_t data_;

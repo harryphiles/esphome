@@ -16,7 +16,7 @@ class RS485Switch : public switch_::Switch, public RS485Device {
         void write_state(bool state) override {
             if(state == this->state) return;
             
-            write_with_header(state ? &command_on_ : &command_off_);
+            write_with_header(state ? this->get_command_on() : this->get_command_off());
             publish_state(state);
         }
 

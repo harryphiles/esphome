@@ -186,15 +186,18 @@ void RS485Device::dump_rs485_device_config(const char *TAG) {
     ESP_LOGCONFIG(TAG, "  State ON: %s, offset: %d", hexencode(&state_on_.data[0], state_on_.data.size()).c_str(), state_on_.offset);
     ESP_LOGCONFIG(TAG, "  State OFF: %s, offset: %d", hexencode(&state_off_.data[0], state_off_.data.size()).c_str(), state_off_.offset);
     
-    ESP_LOGCONFIG(TAG, "  Command ON: %s", hexencode(&command_on_.data[0], command_on_.data.size()).c_str());
+    if(command_on_.data.size() > 0)
+        ESP_LOGCONFIG(TAG, "  Command ON: %s", hexencode(&command_on_.data[0], command_on_.data.size()).c_str());
     if(command_on_.ack.size() > 0)
         ESP_LOGCONFIG(TAG, "  Command ON Ack: %s", hexencode(&command_on_.ack[0], command_on_.ack.size()).c_str());
 
-    ESP_LOGCONFIG(TAG, "  Command OFF: %s", hexencode(&command_off_.data[0], command_off_.data.size()).c_str());
+    if(command_off_.data.size() > 0)
+        ESP_LOGCONFIG(TAG, "  Command OFF: %s", hexencode(&command_off_.data[0], command_off_.data.size()).c_str());
     if(command_off_.ack.size() > 0)
         ESP_LOGCONFIG(TAG, "  Command OFF Ack: %s", hexencode(&command_off_.ack[0], command_off_.ack.size()).c_str());
 
-    ESP_LOGCONFIG(TAG, "  Command State: %s", hexencode(&command_state_.data[0], command_state_.data.size()).c_str());
+    if(command_state_.data.size() > 0)
+        ESP_LOGCONFIG(TAG, "  Command State: %s", hexencode(&command_state_.data[0], command_state_.data.size()).c_str());
     if(command_state_.ack.size() > 0)
         ESP_LOGCONFIG(TAG, "  Command State Ack: %s", hexencode(&command_state_.ack[0], command_state_.ack.size()).c_str());
 }

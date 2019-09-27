@@ -25,7 +25,7 @@ class RS485LightOutput : public light::LightOutput, public RS485Device {
       state->current_values_as_binary(&binary);
       if(binary == this->state_) return;
 
-      write_with_header(binary ? &command_on_ : &command_off_);
+      write_with_header(binary ? this->get_command_on() : this->get_command_off());
       this->state_ = binary;
     }
 
