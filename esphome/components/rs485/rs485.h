@@ -94,21 +94,24 @@ class RS485Device : public RS485Listener, public Component {
         virtual void publish(const uint8_t *data, const num_t len) = 0;
 
         /** Publish on/off state message from parse_date() */
-        virtual void publish(bool state) = 0;
+        virtual bool publish(bool state) = 0;
 
         /** ESPHome Component loop */
         void loop() override;
 
+        /** priority of setup(). higher -> executed earlier */
+        float get_setup_priority() const override { return setup_priority::DATA; }
+
 
     protected:
         const std::string *device_name_;
-        hex_t device_;
-        hex_t sub_device_;
-        hex_t state_on_;
-        hex_t state_off_;
-        cmd_hex_t command_on_;
+        hex_t device_{};
+        hex_t sub_device_{};
+        hex_t state_on_{};
+        hex_t state_off_{};
+        cmd_hex_t command_on_{};
         optional<std::function<cmd_hex_t()>> command_on_func_{};
-        cmd_hex_t command_off_;
+        cmd_hex_t command_off_{};
         optional<std::function<cmd_hex_t()>> command_off_func_{};
 
         unsigned long tx_start_time_{0};
@@ -158,6 +161,7 @@ class RS485Component : public PollingComponent {
         void setup() override;
         void loop() override;
         void update() override;
+        float get_setup_priority() const override { return setup_priority::BUS; }
 
         void write_byte(uint8_t data);
         void write_array(const uint8_t *data, const num_t len);

@@ -220,12 +220,12 @@ bool RS485Device::parse_data(const uint8_t *data, const num_t len) {
     
     // Turn OFF Message
     if(compare(&data[0], len, &state_off_.data[0], state_off_.data.size(), state_off_.offset)) {
-        publish(false);
+        if(!publish(false)) publish(data, len);
         return true;
     }
     // Turn ON Message
     else if(compare(&data[0], len, &state_on_.data[0], state_on_.data.size(), state_on_.offset)) {
-        publish(true);
+        if(!publish(true)) publish(data, len);
         return true;
     }
 

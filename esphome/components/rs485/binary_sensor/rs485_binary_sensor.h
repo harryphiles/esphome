@@ -11,7 +11,7 @@ class RS485BinarySensor : public RS485Device, public binary_sensor::BinarySensor
     RS485BinarySensor() { device_name_ = &this->name_; }
     void dump_config() override;
     void publish(const uint8_t *data, const num_t len) override;
-    void publish(bool state) override { publish_state(state); }
+    bool publish(bool state) override { publish_state(state); return true; }
 
     float get_setup_priority() const override { return setup_priority::HARDWARE; }
 

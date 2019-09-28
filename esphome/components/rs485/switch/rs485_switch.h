@@ -11,7 +11,7 @@ class RS485Switch : public switch_::Switch, public RS485Device {
         RS485Switch() { device_name_ = &this->name_; }
         void dump_config() override;
         void publish(const uint8_t *data, const num_t len) override;
-        void publish(bool state) override { publish_state(state); }
+        bool publish(bool state) override { publish_state(state); return true; }
 
         void write_state(bool state) override {
             if(state == this->state) return;
