@@ -38,10 +38,12 @@ void RS485Component::setup() {
     if (stop_ == 2)
         serialconfig += 0x20;
     #ifdef ARDUINO_ARCH_ESP8266
-        Serial.begin(baud_, (SerialConfig)serialconfig);
+        this->hw_serial_ = &Serial;
+        this->hw_serial_->begin(baud_, (SerialConfig)serialconfig);
     #endif
     #ifdef ARDUINO_ARCH_ESP32
-        Serial.begin(baud_, serialconfig);
+        this->hw_serial_ = &Serial2;
+        this->hw_serial_->begin(baud_, serialconfig);
     #endif
 
     ESP_LOGI(TAG, "HW Serial Initaialize.");
@@ -111,14 +113,14 @@ void RS485Component::rx_proc() {
     rx_bytesRead_ = 0;
     while (rx_timeOut_ > 0)
     {
-        while (Serial.available()) {
+        while (this->hw_serial_->available()) {
             if (rx_bytesRead_ < BUFFER_SIZE) {
-                rx_buffer_[rx_bytesRead_] = Serial.read();
+                rx_buffer_[rx_bytesRead_] = this->hw_serial_->read();
                 rx_bytesRead_++;
                 if(suffix_ && rx_buffer_[rx_bytesRead_-1] == suffix_) return;
             }
             else
-                Serial.read();  // when the buffer is full, just read remaining input, but do not store...
+                this->hw_serial_->read();  // when the buffer is full, just read remaining input, but do not store...
             rx_timeOut_ = rx_wait_; // if serial received, reset timeout counter
         }
         delay(1);
@@ -132,12 +134,12 @@ void RS485Component::update() {
 }
 
 void RS485Component::write_byte(uint8_t data) {
-    Serial.write(data);
+    this->hw_serial_->write(data);
     ESP_LOGD(TAG, "Write byte-> 0x%02X", data);
 }
 
 void RS485Component::write_array(const uint8_t *data, const num_t len) {
-    Serial.write(data, len);
+    this->hw_serial_->write(data, len);
     ESP_LOGD(TAG, "Write array-> %s", hexencode(&data[0], len).c_str());
 }
 
@@ -146,7 +148,7 @@ void RS485Component::write_with_header(const send_hex_t &send) {
 }
 
 void RS485Component::flush() {
-    Serial.flush();
+    this->hw_serial_->flush();
     ESP_LOGD(TAG, "Flushing... (%dms)", millis() - rx_lastTime_);
 }
 

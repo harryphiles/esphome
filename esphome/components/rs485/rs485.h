@@ -183,6 +183,7 @@ class RS485Component : public PollingComponent {
         num_t get_tx_retry_cnt() { return tx_retry_cnt_; }
 
     protected:
+        HardwareSerial *hw_serial_{nullptr};
         std::vector<RS485Listener *> listeners_{};
         optional<std::function<uint8_t(const uint8_t prefix, const uint8_t *data, const num_t len)>> checksum_f_{};
 
