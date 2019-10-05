@@ -20,9 +20,11 @@ void RS485Component::dump_config() {
     ESP_LOGCONFIG(TAG, "  Data prefix: 0x%02X"    , prefix_ );
     ESP_LOGCONFIG(TAG, "  Data suffix: 0x%02X"    , suffix_ );
     ESP_LOGCONFIG(TAG, "  Data checksum: %s"      , YESNO(checksum_));
+    if(state_response_.has_value())
+        ESP_LOGCONFIG(TAG, "  Data response: %s, offset: %d", hexencode(&state_response_.value().data[0], state_response_.value().data.size()).c_str(), state_response_.value().offset);
+
     ESP_LOGCONFIG(TAG, "  Listener count: %d"     , listeners_.size() );
     ESP_LOGCONFIG(TAG, "  Status request interval: %u", update_interval_ );
-
 }
 
 void RS485Component::setup() {
