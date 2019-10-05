@@ -10,13 +10,13 @@ static const char *TAG = "rs485";
 
 void RS485Component::dump_config() {
     ESP_LOGCONFIG(TAG, "TTL to RS485 module");
-    ESP_LOGCONFIG(TAG, "  Baud Rate: %d"          , baud_   );
-    ESP_LOGCONFIG(TAG, "  Data bits: %d"          , data_   );
-    ESP_LOGCONFIG(TAG, "  Parity: %d"             , parity_ );
-    ESP_LOGCONFIG(TAG, "  Stop bits: %d"          , stop_   );
-    ESP_LOGCONFIG(TAG, "  RX Receive Timeout: %d" , rx_wait_ );
-    ESP_LOGCONFIG(TAG, "  TX Transmission Timeout: %d", tx_wait_ );
-    ESP_LOGCONFIG(TAG, "  TX Retry Count: %d"     , tx_retry_cnt_);
+    ESP_LOGCONFIG(TAG, "  Baud Rate: %d"          , conf_baud_   );
+    ESP_LOGCONFIG(TAG, "  Data bits: %d"          , conf_data_   );
+    ESP_LOGCONFIG(TAG, "  Parity: %d"             , conf_parity_ );
+    ESP_LOGCONFIG(TAG, "  Stop bits: %d"          , conf_stop_   );
+    ESP_LOGCONFIG(TAG, "  RX Receive Timeout: %d" , conf_rx_wait_ );
+    ESP_LOGCONFIG(TAG, "  TX Transmission Timeout: %d", conf_tx_wait_ );
+    ESP_LOGCONFIG(TAG, "  TX Retry Count: %d"     , conf_tx_retry_cnt_);
     ESP_LOGCONFIG(TAG, "  Data prefix: 0x%02X"    , prefix_ );
     ESP_LOGCONFIG(TAG, "  Data suffix: 0x%02X"    , suffix_ );
     ESP_LOGCONFIG(TAG, "  Data checksum: %s"      , YESNO(checksum_));
@@ -33,32 +33,65 @@ void RS485Component::setup() {
         uint32_t serialconfig = 0x8000010;
     #endif
 
-    serialconfig += parity_;
-    serialconfig += (data_ - 5) << 2;
-    if (stop_ == 2)
+    serialconfig += conf_parity_;
+    serialconfig += (conf_data_ - 5) << 2;
+    if (conf_stop_ == 2)
         serialconfig += 0x20;
     #ifdef ARDUINO_ARCH_ESP8266
         this->hw_serial_ = &Serial;
-        this->hw_serial_->begin(baud_, (SerialConfig)serialconfig);
+        this->hw_serial_->begin(conf_baud_, (SerialConfig)serialconfig);
     #endif
     #ifdef ARDUINO_ARCH_ESP32
         this->hw_serial_ = &Serial2;
-        this->hw_serial_->begin(baud_, serialconfig);
+        this->hw_serial_->begin(conf_baud_, serialconfig);
     #endif
-
     ESP_LOGI(TAG, "HW Serial Initaialize.");
+    rx_lastTime_ = millis();
 }
 
 void RS485Component::loop() {
+    if(!init_ && millis() - rx_lastTime_ < 20000)  return;
+    else if(!init_) init_ = true;
 
+    // Ack Timeout
+    if(tx_ack_wait_ && millis() - tx_start_time_ > conf_tx_wait_) tx_ack_wait_ = false;
+
+    // Receive Process
     rx_proc();
     
+    // Publish Receive Packet
     if(rx_bytesRead_ > 0) {
         rx_buffer_[rx_bytesRead_] = 0; // before logging as a char array, zero terminate the last position to be safe.
 
         if(!validate(&rx_buffer_[0], rx_bytesRead_))
             return;
 
+        // Patket type
+        if(state_response_.has_value()) {
+            if(compare(&rx_buffer_[prefix_? 1 : 0], rx_bytesRead_-(prefix_? 1 : 0), &state_response_.value().data[0], state_response_.value().data.size(), state_response_.value().offset))
+                response_wait_ = false;
+            else
+                response_wait_ = true;
+        }
+
+        // for Ack
+        if(tx_ack_wait_ && tx_current_cmd_) {
+            if(compare(&rx_buffer_[prefix_? 1 : 0], rx_bytesRead_-(prefix_? 1 : 0), &tx_current_cmd_->ack[0], tx_current_cmd_->ack.size(), 0)) {
+                tx_current_cmd_ = nullptr;
+                tx_ack_wait_ = false;
+                tx_retry_cnt_ = 0;
+
+                if(tx_current_device_) {
+                    tx_current_device_->callback();
+                    tx_current_device_ = nullptr;
+                }
+                ESP_LOGD(TAG, "Ack: %s, Gap Time: %dms", hexencode(rx_buffer_, rx_bytesRead_).c_str(), millis() - tx_start_time_);
+                rx_lastTime_ = millis();
+                return;
+            }
+        }
+        
+        // Publish State
         bool found = false;
         for (auto *listener : this->listeners_)
             if (listener->parse_data(&rx_buffer_[prefix_? 1 : 0], rx_bytesRead_-(prefix_? 1 : 0)-(suffix_? 1 : 0) )) {
@@ -67,7 +100,7 @@ void RS485Component::loop() {
             }
 
         #ifdef ESPHOME_LOG_HAS_VERY_VERBOSE
-            ESP_LOGVV(TAG, "Recieve data-> %s, Gap Time: %dms", hexencode(&rx_buffer_[0], rx_bytesRead_).c_str(), millis() - rx_lastTime_);
+            ESP_LOGVV(TAG, "Receive data-> %s, Gap Time: %dms", hexencode(&rx_buffer_[0], rx_bytesRead_).c_str(), millis() - rx_lastTime_);
         #else
             #ifdef ESPHOME_LOG_HAS_VERBOSE
             if (!found) {
@@ -75,41 +108,19 @@ void RS485Component::loop() {
             }
             #endif
         #endif
+        rx_lastTime_ = millis();
     }
-    rx_lastTime_ = millis();
 
-    // 송신 큐
-    if(!tx_queue_.empty() && !rx_bytesRead_) {
-        const cmd_hex_t *cmd = tx_queue_.front().cmd;
-
-        // Header
-        if(prefix_) write_byte(prefix_);
-        
-        // Data part
-        write_array(cmd->data);
-
-        // XOR Checksum
-        if(checksum_)
-            write_byte(make_checksum(&(cmd->data)[0], (cmd->data).size()));
-
-        // Footer
-        if(suffix_) write_byte(suffix_);
-
-        // wait for send
-        flush();
-
-        // Callback
-        if(tx_queue_.front().device)
-            (*tx_queue_.front().device).callback();
-        tx_queue_.pop();
-
+    // queue Process
+    if(!response_wait_ && (!tx_queue_.empty() || !tx_queue_late_.empty() || (tx_current_cmd_ && !tx_ack_wait_)) && rx_bytesRead_ == 0) {
+        tx_proc();
         rx_lastTime_ = millis();
     }
 }
 
 void RS485Component::rx_proc() {
     memset(&rx_buffer_, 0, BUFFER_SIZE) ;
-    rx_timeOut_ = rx_wait_;
+    rx_timeOut_ = conf_rx_wait_;
     rx_bytesRead_ = 0;
     while (rx_timeOut_ > 0)
     {
@@ -121,16 +132,99 @@ void RS485Component::rx_proc() {
             }
             else
                 this->hw_serial_->read();  // when the buffer is full, just read remaining input, but do not store...
-            rx_timeOut_ = rx_wait_; // if serial received, reset timeout counter
+            rx_timeOut_ = conf_rx_wait_; // if serial received, reset timeout counter
         }
         delay(1);
         rx_timeOut_--;
     }
 }
 
+void RS485Component::tx_proc() {
+    //if(millis()-rx_lastTime_ < conf_rx_wait_*2) return;        
+
+    // Command retry
+    if(!tx_ack_wait_ && tx_current_cmd_) {
+        if(conf_tx_retry_cnt_ > tx_retry_cnt_) {
+            ESP_LOGD(TAG, "Retry count: %d", tx_retry_cnt_);
+            write_with_header(tx_current_cmd_->data);
+            tx_ack_wait_ = true;
+            tx_retry_cnt_++;
+            return;
+        }
+        else {
+            tx_current_cmd_ = nullptr;
+            tx_ack_wait_ = false;
+            tx_retry_cnt_ = 0;
+
+            if(tx_current_device_) {
+                tx_current_device_->callback();
+                tx_current_device_ = nullptr;
+            }
+            ESP_LOGD(TAG, "Retry fail.");
+        }
+    }
+
+    // for State request
+    if(tx_queue_.empty() && !tx_queue_late_.empty()) {
+        write_with_header(tx_queue_late_.front()->data);
+
+        if(tx_queue_late_.front()->ack.size() > 0) {
+            tx_current_cmd_ = tx_queue_late_.front();
+            tx_current_device_ = nullptr;
+            tx_ack_wait_ = true;
+            tx_retry_cnt_ = 1;
+        }
+        tx_queue_late_.pop();
+    }
+
+    // for Command
+    else if(!tx_queue_.empty()) {
+        write_with_header(tx_queue_.front().cmd->data);
+        
+        // Pending Ack
+        if(tx_queue_.front().cmd->ack.size() > 0) {
+            tx_current_cmd_ = tx_queue_.front().cmd;
+            tx_current_device_ = tx_queue_.front().device;
+            tx_ack_wait_ = true;
+            tx_retry_cnt_ = 1;
+        }
+        else if(tx_queue_.front().device) {
+            (*tx_queue_.front().device).callback();
+        }
+        tx_queue_.pop();
+    }
+}
+
+void RS485Component::write_with_header(const std::vector<uint8_t> &data) {
+    tx_start_time_ = millis();
+
+    // Header
+    if(prefix_) write_byte(prefix_);
+    
+    // Data part
+    write_array(data);
+
+    // XOR Checksum
+    if(checksum_)
+        write_byte(make_checksum(&(data[0]), data.size()));
+
+    // Footer
+    if(suffix_) write_byte(suffix_);
+
+    // wait for send
+    flush();
+
+    // for Ack wait
+    tx_start_time_ = millis();
+}
+
 void RS485Component::update() {
-    // 현재 상태 요청
+    // 각 Device 상태 요청
     ESP_LOGD(TAG, "RS485Component::update(): Request current state...");
+    for (auto *listener : this->listeners_)
+        if (listener->has_command_state()) {
+            tx_queue_late_.push(listener->get_command_state());
+        }
 }
 
 void RS485Component::write_byte(uint8_t data) {
@@ -143,13 +237,17 @@ void RS485Component::write_array(const uint8_t *data, const num_t len) {
     ESP_LOGD(TAG, "Write array-> %s", hexencode(&data[0], len).c_str());
 }
 
-void RS485Component::write_with_header(const send_hex_t &send) {
+void RS485Component::write_next(const send_hex_t send) {
+    if(!init_) {
+        if(send.device) (*send.device).callback();
+        return;
+    }
     tx_queue_.push(send);
 }
 
 void RS485Component::flush() {
     this->hw_serial_->flush();
-    ESP_LOGD(TAG, "Flushing... (%dms)", millis() - rx_lastTime_);
+    ESP_LOGD(TAG, "Flushing... (%dms)", millis() - tx_start_time_);
 }
 
 bool RS485Component::validate(const uint8_t *data, const num_t len) {
@@ -182,6 +280,7 @@ uint8_t RS485Component::make_checksum(const uint8_t *data, const num_t len) cons
 }
 
 
+
 void RS485Device::dump_rs485_device_config(const char *TAG) {
     ESP_LOGCONFIG(TAG, "  Device: %s", hexencode(&device_.data[0], device_.data.size()).c_str(), device_.offset);
     ESP_LOGCONFIG(TAG, "  Sub device: %s, offset: %d", hexencode(&sub_device_.data[0], sub_device_.data.size()).c_str(), sub_device_.offset);
@@ -206,14 +305,6 @@ void RS485Device::dump_rs485_device_config(const char *TAG) {
 
 bool RS485Device::parse_data(const uint8_t *data, const num_t len) {
     if(tx_pending_) return false;
-    if(tx_ack_waiting_) {
-        if(compare(&data[0], len, &tx_ack_waiting_->ack[0], tx_ack_waiting_->ack.size(), 0)) {
-            tx_ack_waiting_ = nullptr;
-            tx_retry_cnt_ = 0;
-            ESP_LOGD(TAG, "'%s' Ack: %s", device_name_->c_str(), hexencode(data, len).c_str());
-        }
-        return true;
-    }
 
     if(!compare(&data[0], len, &device_.data[0], device_.data.size(), device_.offset))
         return false;
@@ -238,42 +329,9 @@ bool RS485Device::parse_data(const uint8_t *data, const num_t len) {
 
 void RS485Device::write_with_header(const cmd_hex_t *cmd) {
     tx_pending_ = true;
-    parent_->write_with_header({this, cmd});
-
-    tx_start_time_ = millis();
-    tx_ack_waiting_ = cmd->ack.size() > 0 ? cmd : nullptr;
+    parent_->write_next({this, cmd});
 }
 
-void RS485Device::loop() {
-    if(!tx_pending_ && tx_ack_waiting_ == nullptr) {
-        return;
-    }
-
-    // 전송큐 실행 될 때까지 대기
-    if(tx_pending_ && millis()-tx_start_time_ < MAX_TX_PANDING_TIME) {
-        delay(5);
-        return;
-    }
-
-    // 실제 전송 후 ACK 대기
-    if(tx_ack_waiting_) {
-        if(millis() - tx_start_time_ < parent_->get_tx_wait()) {
-            delay(5);
-            return;
-        }
-
-        if(tx_retry_cnt_ < parent_->get_tx_retry_cnt()) {
-            tx_retry_cnt_++;
-            ESP_LOGD(TAG, "'%s' Retry count: %d", device_name_->c_str(), tx_retry_cnt_);
-            write_with_header(tx_ack_waiting_);
-        }
-        else {
-            tx_ack_waiting_ = nullptr;
-            tx_retry_cnt_ = 0;
-        }
-        
-    }
-}
 
 
 bool SerialMonitor::parse_data(const uint8_t *data, const num_t len) {

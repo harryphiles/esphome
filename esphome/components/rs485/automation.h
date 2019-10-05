@@ -19,11 +19,11 @@ template<typename... Ts> class RS485WriteAction : public Action<Ts...>, public P
 
   void play(Ts... x) override {
     if (this->static_) {
-      this->parent_->write_with_header({nullptr, &this->data_static_});
+      this->parent_->write_next({nullptr, &this->data_static_});
     } else {
       std::vector<uint8_t> val = this->data_func_(x...);
       data_static_ = {val, {}};
-      this->parent_->write_with_header({nullptr, &this->data_static_});
+      this->parent_->write_next({nullptr, &this->data_static_});
     }
   }
 

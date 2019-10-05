@@ -10,7 +10,8 @@ from .const import CONF_DATA_BITS, CONF_PARITY, CONF_STOP_BITS, CONF_PREFIX, CON
                    CONF_CHECKSUM, CONF_CHECKSUM_LAMBDA, CONF_ACK, CONF_RS485_ID, \
                    CONF_PACKET_MONITOR, CONF_PACKET_MONITOR_ID, CONF_SUB_DEVICE, \
                    CONF_STATE_ON, CONF_STATE_OFF, CONF_COMMAND_ON, CONF_COMMAND_OFF, \
-                   CONF_COMMAND_STATE, CONF_RX_WAIT, CONF_TX_WAIT, CONF_TX_RETRY_CNT
+                   CONF_COMMAND_STATE, CONF_RX_WAIT, CONF_TX_WAIT, CONF_TX_RETRY_CNT, \
+                   CONF_STATE_RESPONSE
 
 rs485_ns = cg.esphome_ns.namespace('rs485')
 RS485Component = rs485_ns.class_('RS485Component', cg.Component)
@@ -73,6 +74,7 @@ CONFIG_SCHEMA = cv.All(cv.Schema({
     cv.Optional(CONF_CHECKSUM_LAMBDA): cv.returning_lambda,
     cv.Optional(CONF_UPDATE_INTERVAL, default='never'): cv.update_interval,
     cv.Optional(CONF_PACKET_MONITOR): cv.ensure_list(state_hex_schema),
+    cv.Optional(CONF_STATE_RESPONSE): state_hex_schema,
 }).extend(cv.COMPONENT_SCHEMA))
 
 
@@ -103,6 +105,10 @@ def to_code(config):
         cg.add(var.set_checksum_lambda(template_))
     if CONF_CHECKSUM in config:
         cg.add(var.set_checksum(config[CONF_CHECKSUM]))
+
+    if CONF_STATE_RESPONSE in config:
+        state_response = yield state_hex_expression(config[CONF_STATE_RESPONSE])
+        cg.add(var.set_state_response(state_response))
 
     if CONF_PACKET_MONITOR in config:
         sm = cg.new_Pvariable(config[CONF_PACKET_MONITOR_ID])

@@ -8,7 +8,6 @@
 #include "esphome/core/esphal.h"
 
 #define BUFFER_SIZE 128
-#define MAX_TX_PANDING_TIME 3000
 
 namespace esphome {
 namespace rs485 {
@@ -85,7 +84,7 @@ class RS485Device : public RS485Listener, public Component {
         const cmd_hex_t* get_command_off() { if(command_off_func_.has_value()) command_off_ = (*command_off_func_)(); return &command_off_; }
 
         void write_with_header(const cmd_hex_t *cmd);
-        void callback() { tx_pending_ = false; tx_start_time_ = millis(); }
+        void callback() { tx_pending_ = false; }
         
         /** RS485 raw message parse */
         bool parse_data(const uint8_t *data, const num_t len) override;
@@ -95,9 +94,6 @@ class RS485Device : public RS485Listener, public Component {
 
         /** Publish on/off state message from parse_date() */
         virtual bool publish(bool state) = 0;
-
-        /** ESPHome Component loop */
-        void loop() override;
 
         /** priority of setup(). higher -> executed earlier */
         float get_setup_priority() const override { return setup_priority::DATA; }
@@ -114,10 +110,8 @@ class RS485Device : public RS485Listener, public Component {
         cmd_hex_t command_off_{};
         optional<std::function<cmd_hex_t()>> command_off_func_{};
 
-        unsigned long tx_start_time_{0};
         bool tx_pending_{false};
-        num_t tx_retry_cnt_{0};
-        const cmd_hex_t *tx_ack_waiting_{nullptr};
+
 
 
 };
@@ -135,11 +129,11 @@ class RS485Device : public RS485Listener, public Component {
 class RS485Component : public PollingComponent {
     public:
         RS485Component(int baud, num_t data=8, num_t parity=0, num_t stop=1, num_t rx_wait=15) {
-            baud_   = baud;
-            data_   = data;
-            parity_ = parity;
-            stop_   = stop;
-            rx_wait_ = rx_wait;
+            conf_baud_   = baud;
+            conf_data_   = data;
+            conf_parity_ = parity;
+            conf_stop_   = stop;
+            conf_rx_wait_ = rx_wait;
         }
 
         /** 시작부(수신시 Check, 발신시 Append) */
@@ -166,7 +160,8 @@ class RS485Component : public PollingComponent {
         void write_byte(uint8_t data);
         void write_array(const uint8_t *data, const num_t len);
         void write_array(const std::vector<uint8_t> &data) { this->write_array(&data[0], data.size()); }
-        void write_with_header(const send_hex_t &send);
+        void write_with_header(const std::vector<uint8_t> &data);
+        void write_next(const send_hex_t send);
         void flush();
 
         void register_listener(RS485Listener *listener) {
@@ -175,42 +170,56 @@ class RS485Component : public PollingComponent {
         }
 
         /** TX Ack wait time */
-        void set_tx_wait(num_t tx_wait) { tx_wait_ = tx_wait; }
-        num_t get_tx_wait() { return tx_wait_; }
+        void set_tx_wait(num_t tx_wait) { conf_tx_wait_ = tx_wait; }
 
         /** TX Retry count */
-        void set_tx_retry_cnt(num_t tx_retry_cnt) { tx_retry_cnt_ = tx_retry_cnt; }
-        num_t get_tx_retry_cnt() { return tx_retry_cnt_; }
+        void set_tx_retry_cnt(num_t tx_retry_cnt) { conf_tx_retry_cnt_ = tx_retry_cnt; }
+
+        /** Response Packet Pattern */
+        void set_state_response(hex_t state_response) { state_response_ = state_response; }
 
     protected:
         HardwareSerial *hw_serial_{nullptr};
         std::vector<RS485Listener *> listeners_{};
-        optional<std::function<uint8_t(const uint8_t prefix, const uint8_t *data, const num_t len)>> checksum_f_{};
 
-        int baud_;
-        num_t data_;
-        num_t parity_;
-        num_t stop_;
-        num_t rx_wait_;
-        num_t tx_wait_{50};
-        num_t tx_retry_cnt_{3};
+        int conf_baud_;
+        num_t conf_data_;
+        num_t conf_parity_;
+        num_t conf_stop_;
+        num_t conf_rx_wait_;
+        num_t conf_tx_wait_{50};
+        num_t conf_tx_retry_cnt_{3};
+        optional<hex_t> state_response_{};
 
         uint8_t prefix_{0x00};
         uint8_t suffix_{0x00};
         bool checksum_{false};
+        optional<std::function<uint8_t(const uint8_t prefix, const uint8_t *data, const num_t len)>> checksum_f_{};
+
 
         /** 수신데이터 검증 */
         bool validate(const uint8_t *data, const num_t len);
     
     private:
+        bool init_{false};
+        bool response_wait_{false};
         uint8_t rx_buffer_[BUFFER_SIZE]{};
-        int     rx_timeOut_{rx_wait_};
+        int     rx_timeOut_{conf_rx_wait_};
         num_t   rx_bytesRead_{0};
         unsigned long rx_lastTime_{0};
+
+        /** queue for Command */
         std::queue<send_hex_t> tx_queue_{};
+        /** queue for State request */
+        std::queue<cmd_hex_t*> tx_queue_late_{};
+        const cmd_hex_t *tx_current_cmd_{nullptr};
+        RS485Device *tx_current_device_{nullptr};
+        unsigned long tx_start_time_{0};
+        bool tx_ack_wait_{false};
+        num_t tx_retry_cnt_{0};
 
         void rx_proc();
-
+        void tx_proc();
 
 };
 
