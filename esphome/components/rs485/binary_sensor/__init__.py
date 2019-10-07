@@ -7,11 +7,11 @@ from .. import rs485_ns
 from ..const import CONF_COMMAND_ON, CONF_COMMAND_OFF
 
 DEPENDENCIES = ['rs485']
-TemplateBinarySensor = rs485_ns.class_('RS485BinarySensor', binary_sensor.BinarySensor,
-                                       cg.Component)
+RS485BinarySensor = rs485_ns.class_('RS485BinarySensor', binary_sensor.BinarySensor,
+                                    cg.Component)
 
 CONFIG_SCHEMA = binary_sensor.BINARY_SENSOR_SCHEMA.extend({
-    cv.GenerateID(): cv.declare_id(TemplateBinarySensor),
+    cv.GenerateID(): cv.declare_id(RS485BinarySensor),
 }).extend(rs485.RS485_DEVICE_SCHEMA).extend({
     cv.Optional(CONF_COMMAND_ON): cv.invalid("RS485 Binary Sensor do not support command_on!"),
     cv.Optional(CONF_COMMAND_OFF): cv.invalid("RS485 Binary Sensor do not support command_off!")
