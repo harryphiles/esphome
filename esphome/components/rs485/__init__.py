@@ -200,17 +200,17 @@ def command_hex_expression(conf):
 @automation.register_action('rs485.write', RS485WriteAction, cv.maybe_simple_value({
     cv.GenerateID(): cv.use_id(RS485Component),
     cv.Required(CONF_DATA): cv.templatable(validate_hex_data),
+    cv.Optional(CONF_ACK, default=[]): validate_hex_data
 }, key=CONF_DATA))
 def rs485_write_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     yield cg.register_parented(var, config[CONF_ID])
     data = config[CONF_DATA]
-    if isinstance(data, binary_type):
-        data = [char_to_byte(x) for x in data]
 
     if cg.is_template(data):
-        templ = yield cg.templatable(data, args, cg.std_vector.template(cg.uint8))
+        templ = yield cg.templatable(data, args, cmd_hex_t)
         cg.add(var.set_data_template(templ))
     else:
-        cg.add(var.set_data_static(data))
+        cmd = yield command_hex_expression(config)
+        cg.add(var.set_data_static(cmd))
     yield var
