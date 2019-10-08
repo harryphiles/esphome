@@ -13,7 +13,7 @@ class RS485BinarySensor : public RS485Device, public binary_sensor::BinarySensor
     void publish(const uint8_t *data, const num_t len) override;
     bool publish(bool state) override { publish_state(state); return true; }
 
-    float get_setup_priority() const override { return setup_priority::HARDWARE; }
+    float get_setup_priority() const override { return setup_priority::DATA; }
 
   protected:
     

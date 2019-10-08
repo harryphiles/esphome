@@ -24,7 +24,6 @@ void RS485Component::dump_config() {
         ESP_LOGCONFIG(TAG, "  Data response: %s, offset: %d", hexencode(&state_response_.value().data[0], state_response_.value().data.size()).c_str(), state_response_.value().offset);
 
     ESP_LOGCONFIG(TAG, "  Listener count: %d"     , listeners_.size() );
-    ESP_LOGCONFIG(TAG, "  Status request interval: %u", update_interval_ );
 }
 
 void RS485Component::setup() {
@@ -220,15 +219,6 @@ void RS485Component::write_with_header(const std::vector<uint8_t> &data) {
     tx_start_time_ = millis();
 }
 
-void RS485Component::update() {
-    // 각 Device 상태 요청
-    ESP_LOGD(TAG, "RS485Component::update(): Request current state...");
-    for (auto *listener : this->listeners_)
-        if (listener->has_command_state()) {
-            tx_queue_late_.push(listener->get_command_state());
-        }
-}
-
 void RS485Component::write_byte(uint8_t data) {
     this->hw_serial_->write(data);
     ESP_LOGD(TAG, "Write byte-> 0x%02X", data);
@@ -246,6 +236,12 @@ void RS485Component::write_next(const send_hex_t send) {
     }
     tx_queue_.push(send);
 }
+
+void RS485Component::write_next_late(const cmd_hex_t *cmd) {
+    if(!init_) return;
+    tx_queue_late_.push(cmd);
+}
+
 
 void RS485Component::flush() {
     this->hw_serial_->flush();
@@ -283,26 +279,39 @@ uint8_t RS485Component::make_checksum(const uint8_t *data, const num_t len) cons
 
 
 
+void RS485Device::update() {
+    if(!command_state_.has_value()) return;
+
+    ESP_LOGD(TAG, "'%s' update(): Request current state...", device_name_->c_str());
+    parent_->write_next_late(&command_state_.value());
+}
+
 void RS485Device::dump_rs485_device_config(const char *TAG) {
     ESP_LOGCONFIG(TAG, "  Device: %s", hexencode(&device_.data[0], device_.data.size()).c_str(), device_.offset);
-    ESP_LOGCONFIG(TAG, "  Sub device: %s, offset: %d", hexencode(&sub_device_.data[0], sub_device_.data.size()).c_str(), sub_device_.offset);
-    ESP_LOGCONFIG(TAG, "  State ON: %s, offset: %d", hexencode(&state_on_.data[0], state_on_.data.size()).c_str(), state_on_.offset);
-    ESP_LOGCONFIG(TAG, "  State OFF: %s, offset: %d", hexencode(&state_off_.data[0], state_off_.data.size()).c_str(), state_off_.offset);
+    if(sub_device_.has_value())
+        ESP_LOGCONFIG(TAG, "  Sub device: %s, offset: %d", hexencode(&sub_device_.value().data[0], sub_device_.value().data.size()).c_str(), sub_device_.value().offset);
+
+    if(state_on_.has_value())
+        ESP_LOGCONFIG(TAG, "  State ON: %s, offset: %d", hexencode(&state_on_.value().data[0], state_on_.value().data.size()).c_str(), state_on_.value().offset);
+    if(state_off_.has_value())
+        ESP_LOGCONFIG(TAG, "  State OFF: %s, offset: %d", hexencode(&state_off_.value().data[0], state_off_.value().data.size()).c_str(), state_off_.value().offset);
     
-    if(command_on_.data.size() > 0)
-        ESP_LOGCONFIG(TAG, "  Command ON: %s", hexencode(&command_on_.data[0], command_on_.data.size()).c_str());
-    if(command_on_.ack.size() > 0)
-        ESP_LOGCONFIG(TAG, "  Command ON Ack: %s", hexencode(&command_on_.ack[0], command_on_.ack.size()).c_str());
+    if(command_on_.has_value())
+        ESP_LOGCONFIG(TAG, "  Command ON: %s", hexencode(&command_on_.value().data[0], command_on_.value().data.size()).c_str());
+    if(command_on_.has_value())
+        ESP_LOGCONFIG(TAG, "  Command ON Ack: %s", hexencode(&command_on_.value().ack[0], command_on_.value().ack.size()).c_str());
 
-    if(command_off_.data.size() > 0)
-        ESP_LOGCONFIG(TAG, "  Command OFF: %s", hexencode(&command_off_.data[0], command_off_.data.size()).c_str());
-    if(command_off_.ack.size() > 0)
-        ESP_LOGCONFIG(TAG, "  Command OFF Ack: %s", hexencode(&command_off_.ack[0], command_off_.ack.size()).c_str());
+    if(command_off_.has_value())
+        ESP_LOGCONFIG(TAG, "  Command OFF: %s", hexencode(&command_off_.value().data[0], command_off_.value().data.size()).c_str());
+    if(command_off_.has_value())
+        ESP_LOGCONFIG(TAG, "  Command OFF Ack: %s", hexencode(&command_off_.value().ack[0], command_off_.value().ack.size()).c_str());
 
-    if(command_state_.data.size() > 0)
-        ESP_LOGCONFIG(TAG, "  Command State: %s", hexencode(&command_state_.data[0], command_state_.data.size()).c_str());
-    if(command_state_.ack.size() > 0)
-        ESP_LOGCONFIG(TAG, "  Command State Ack: %s", hexencode(&command_state_.ack[0], command_state_.ack.size()).c_str());
+    if(command_state_.has_value())
+        ESP_LOGCONFIG(TAG, "  Command State: %s", hexencode(&command_state_.value().data[0], command_state_.value().data.size()).c_str());
+    if(command_state_.has_value()) {
+        ESP_LOGCONFIG(TAG, "  Command State Ack: %s", hexencode(&command_state_.value().ack[0], command_state_.value().ack.size()).c_str());
+        ESP_LOGCONFIG(TAG, "  Status request interval: %u", update_interval_ );
+    }
 }
 
 bool RS485Device::parse_data(const uint8_t *data, const num_t len) {
@@ -310,16 +319,16 @@ bool RS485Device::parse_data(const uint8_t *data, const num_t len) {
 
     if(!compare(&data[0], len, &device_.data[0], device_.data.size(), device_.offset))
         return false;
-    else if(sub_device_.data.size() > 0 && !compare(&data[0], len, &sub_device_.data[0], sub_device_.data.size(), sub_device_.offset))
+    else if(sub_device_.has_value() && !compare(&data[0], len, &sub_device_.value().data[0], sub_device_.value().data.size(), sub_device_.value().offset))
         return false;
     
     // Turn OFF Message
-    if(compare(&data[0], len, &state_off_.data[0], state_off_.data.size(), state_off_.offset)) {
+    if(compare(&data[0], len, &state_off_.value().data[0], state_off_.value().data.size(), state_off_.value().offset)) {
         if(!publish(false)) publish(data, len);
         return true;
     }
     // Turn ON Message
-    else if(compare(&data[0], len, &state_on_.data[0], state_on_.data.size(), state_on_.offset)) {
+    else if(compare(&data[0], len, &state_on_.value().data[0], state_on_.value().data.size(), state_on_.value().offset)) {
         if(!publish(true)) publish(data, len);
         return true;
     }

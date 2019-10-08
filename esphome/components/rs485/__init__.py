@@ -72,7 +72,6 @@ CONFIG_SCHEMA = cv.All(cv.Schema({
     cv.Optional(CONF_SUFFIX): cv.hex_int,
     cv.Optional(CONF_CHECKSUM): cv.boolean,
     cv.Optional(CONF_CHECKSUM_LAMBDA): cv.returning_lambda,
-    cv.Optional(CONF_UPDATE_INTERVAL, default='never'): cv.update_interval,
     cv.Optional(CONF_PACKET_MONITOR): cv.ensure_list(state_hex_schema),
     cv.Optional(CONF_STATE_RESPONSE): state_hex_schema,
 }).extend(cv.COMPONENT_SCHEMA))
@@ -130,6 +129,7 @@ RS485_DEVICE_SCHEMA = cv.Schema({
     cv.Required(CONF_COMMAND_ON): cv.templatable(command_hex_schema),
     cv.Required(CONF_COMMAND_OFF): cv.templatable(command_hex_schema),
     cv.Optional(CONF_COMMAND_STATE): command_hex_schema,
+    cv.Optional(CONF_UPDATE_INTERVAL, default='never'): cv.update_interval,
 })
 
 

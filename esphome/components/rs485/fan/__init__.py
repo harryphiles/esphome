@@ -2,7 +2,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import fan, rs485
 from esphome.const import CONF_OUTPUT_ID, CONF_SPEED, CONF_LOW, CONF_MEDIUM, CONF_HIGH, \
-                          CONF_STATE, CONF_COMMAND
+                          CONF_STATE, CONF_COMMAND, CONF_UPDATE_INTERVAL
 from .. import rs485_ns, state_hex_schema, command_hex_schema, state_hex_expression, \
                command_hex_expression
 
@@ -25,7 +25,11 @@ CONFIG_SCHEMA = fan.FAN_SCHEMA.extend({
 
 
 def to_code(config):
+    interval = config[CONF_UPDATE_INTERVAL]
+    del config[CONF_UPDATE_INTERVAL]
     fan_state = yield fan.create_fan_state(config)
+
+    config[CONF_UPDATE_INTERVAL] = interval
     var = cg.new_Pvariable(config[CONF_OUTPUT_ID], fan_state)
     yield cg.register_component(var, config)
     speeds = config[CONF_SPEED]

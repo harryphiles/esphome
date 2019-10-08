@@ -24,6 +24,14 @@ struct hex_t
     std::vector<uint8_t> data;
 };
 
+/** Number state HEX Struct  **/
+struct state_num_t
+{
+    num_t offset;
+    num_t length; // 1~4
+    num_t precision; // 0~5
+};
+
 /** Command HEX Struct */
 struct cmd_hex_t
 {
@@ -48,16 +56,11 @@ class RS485Listener {
         virtual bool parse_data(const uint8_t *data, const num_t len) = 0;
         void set_parent(RS485Component *parent) { parent_ = parent; }
 
-        void set_command_state(cmd_hex_t command_state) { command_state_ = command_state; }
-        bool has_command_state() { return command_state_.data.size() > 0; }
-        cmd_hex_t *get_command_state() { return &command_state_; }
-
         void set_monitor(bool monitor) { monitor_ = monitor; }
         bool is_monitor() { return monitor_; }
 
     protected:
         RS485Component *parent_{nullptr};
-        cmd_hex_t command_state_;
         bool monitor_{false};
 
 };
@@ -66,8 +69,9 @@ class RS485Listener {
 /**
  * RS485 Device
  */
-class RS485Device : public RS485Listener, public Component {
+class RS485Device : public RS485Listener, public PollingComponent {
     public:
+        void update() override;
         void dump_rs485_device_config(const char *TAG);
 
         void set_device(hex_t device) { device_ = device; }
@@ -77,11 +81,13 @@ class RS485Device : public RS485Listener, public Component {
         
         void set_command_on(cmd_hex_t command_on) { command_on_ = command_on; }
         void set_command_on(std::function<cmd_hex_t()> command_on_func) { command_on_func_ = command_on_func; }
-        const cmd_hex_t* get_command_on() { if(command_on_func_.has_value()) command_on_ = (*command_on_func_)(); return &command_on_; }
+        const cmd_hex_t* get_command_on() { if(command_on_func_.has_value()) command_on_ = (*command_on_func_)(); return &command_on_.value(); }
         
         void set_command_off(cmd_hex_t command_off) { command_off_ = command_off; }
         void set_command_off(std::function<cmd_hex_t()> command_off_func) { command_off_func_ = command_off_func; }
-        const cmd_hex_t* get_command_off() { if(command_off_func_.has_value()) command_off_ = (*command_off_func_)(); return &command_off_; }
+        const cmd_hex_t* get_command_off() { if(command_off_func_.has_value()) command_off_ = (*command_off_func_)(); return &command_off_.value(); }
+
+        void set_command_state(cmd_hex_t command_state) { command_state_ = command_state; }
 
         void write_with_header(const cmd_hex_t *cmd);
         void callback() { tx_pending_ = false; }
@@ -102,13 +108,14 @@ class RS485Device : public RS485Listener, public Component {
     protected:
         const std::string *device_name_;
         hex_t device_{};
-        hex_t sub_device_{};
-        hex_t state_on_{};
-        hex_t state_off_{};
-        cmd_hex_t command_on_{};
+        optional<hex_t> sub_device_{};
+        optional<hex_t> state_on_{};
+        optional<hex_t> state_off_{};
+        optional<cmd_hex_t> command_on_{};
         optional<std::function<cmd_hex_t()>> command_on_func_{};
-        cmd_hex_t command_off_{};
+        optional<cmd_hex_t> command_off_{};
         optional<std::function<cmd_hex_t()>> command_off_func_{};
+        optional<cmd_hex_t> command_state_;
 
         bool tx_pending_{false};
 
@@ -126,7 +133,7 @@ class RS485Device : public RS485Listener, public Component {
  * @param stop Stop bits
  * @param rx_wait RX Receive Timeout (mSec)
  */
-class RS485Component : public PollingComponent {
+class RS485Component : public Component {
     public:
         RS485Component(int baud, num_t data=8, num_t parity=0, num_t stop=1, num_t rx_wait=15) {
             conf_baud_   = baud;
@@ -154,14 +161,16 @@ class RS485Component : public PollingComponent {
         void dump_config() override;
         void setup() override;
         void loop() override;
-        void update() override;
         float get_setup_priority() const override { return setup_priority::BUS; }
 
         void write_byte(uint8_t data);
         void write_array(const uint8_t *data, const num_t len);
         void write_array(const std::vector<uint8_t> &data) { this->write_array(&data[0], data.size()); }
         void write_with_header(const std::vector<uint8_t> &data);
+        /** write for Command */
         void write_next(const send_hex_t send);
+        /** write for State request */
+        void write_next_late(const cmd_hex_t *cmd);
         void flush();
 
         void register_listener(RS485Listener *listener) {
@@ -196,13 +205,19 @@ class RS485Component : public PollingComponent {
         bool checksum_{false};
         optional<std::function<uint8_t(const uint8_t prefix, const uint8_t *data, const num_t len)>> checksum_f_{};
 
-
         /** 수신데이터 검증 */
         bool validate(const uint8_t *data, const num_t len);
-    
-    private:
+        /** 수신처리 */
+        void rx_proc();
+        /** 전송처리 */
+        void tx_proc();
+
+        /** 초기화 여부 */
         bool init_{false};
+        /** 응답 대기 상태 여부 */
         bool response_wait_{false};
+        
+        //////// 수신처리 관련 변수  ////////
         uint8_t rx_buffer_[BUFFER_SIZE]{};
         int     rx_timeOut_{conf_rx_wait_};
         num_t   rx_bytesRead_{0};
@@ -211,15 +226,14 @@ class RS485Component : public PollingComponent {
         /** queue for Command */
         std::queue<send_hex_t> tx_queue_{};
         /** queue for State request */
-        std::queue<cmd_hex_t*> tx_queue_late_{};
+        std::queue<const cmd_hex_t*> tx_queue_late_{};
+
+        //////// 전송처리 관련 변수  ////////
         const cmd_hex_t *tx_current_cmd_{nullptr};
         RS485Device *tx_current_device_{nullptr};
         unsigned long tx_start_time_{0};
         bool tx_ack_wait_{false};
         num_t tx_retry_cnt_{0};
-
-        void rx_proc();
-        void tx_proc();
 
 };
 

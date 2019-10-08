@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import light, rs485
-from esphome.const import CONF_ID, CONF_NAME, CONF_OUTPUT_ID, CONF_DEVICE
+from esphome.const import CONF_ID, CONF_NAME, CONF_OUTPUT_ID, CONF_DEVICE, CONF_UPDATE_INTERVAL
 from .. import rs485_ns
 
 DEPENDENCIES = ['rs485']
@@ -18,8 +18,9 @@ def to_code(config):
     cg.add(var.set_light(light_var))
 
     cg.add(cg.App.register_light(light_var))
-    yield cg.register_component(light_var, config)
     yield cg.register_component(var, config)
+    del config[CONF_UPDATE_INTERVAL]
+    yield cg.register_component(light_var, config)
     yield light.setup_light_core_(light_var, var, config)
 
     yield rs485.register_rs485_device(var, config)
