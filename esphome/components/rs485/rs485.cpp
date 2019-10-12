@@ -312,6 +312,7 @@ void RS485Device::dump_rs485_device_config(const char *TAG) {
         ESP_LOGCONFIG(TAG, "  Command State Ack: %s", hexencode(&command_state_.value().ack[0], command_state_.value().ack.size()).c_str());
         ESP_LOGCONFIG(TAG, "  Status request interval: %u", update_interval_ );
     }
+    LOG_UPDATE_INTERVAL(this);
 }
 
 bool RS485Device::parse_data(const uint8_t *data, const num_t len) {
@@ -379,6 +380,14 @@ bool compare(const uint8_t *data1, const num_t len1, const uint8_t *data2, const
         return false;
     //ESP_LOGD(TAG, "compare(0x%02X, 0x%02X, %d)=> %d", data1[offset], data2[0], len2, memcmp(&data1[offset], &data2[0], len2));
     return memcmp(&data1[offset], &data2[0], len2) == 0;
+}
+
+float hex_to_float(const uint8_t *data, const num_t len, const num_t precision) {
+    unsigned int val = 0;
+    for(num_t i=0; i<len; i++) {
+        val = (val << 8) | data[i];
+    }
+    return val/powf(10, precision);
 }
 
 

@@ -148,11 +148,13 @@ def register_rs485_device(var, config):
         sub_device = yield state_hex_expression(config[CONF_SUB_DEVICE])
         cg.add(var.set_sub_device(sub_device))
 
-    state_on = yield state_hex_expression(config[CONF_STATE_ON])
-    cg.add(var.set_state_on(state_on))
+    if CONF_STATE_ON in config:
+        state_on = yield state_hex_expression(config[CONF_STATE_ON])
+        cg.add(var.set_state_on(state_on))
 
-    state_off = yield state_hex_expression(config[CONF_STATE_OFF])
-    cg.add(var.set_state_off(state_off))
+    if CONF_STATE_OFF in config:
+        state_off = yield state_hex_expression(config[CONF_STATE_OFF])
+        cg.add(var.set_state_off(state_off))
 
     if CONF_COMMAND_ON in config:
         data = config[CONF_COMMAND_ON]

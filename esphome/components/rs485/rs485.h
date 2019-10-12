@@ -243,6 +243,9 @@ std::string hexencode(const uint8_t *raw_data, const num_t len);
 /** uint8_t[] compare */
 bool compare(const uint8_t *data1, const num_t len1, const uint8_t *data2, const num_t len2, const num_t offset);
 
+/** uint8_t[] to decimal(float) */
+float hex_to_float(const uint8_t *data, const num_t len, const num_t precision);
+
 /** 패킷 캡쳐용 리스너 */
 class SerialMonitor : public RS485Listener {
     public:

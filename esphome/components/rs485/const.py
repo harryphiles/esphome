@@ -22,3 +22,9 @@ CONF_COMMAND_OFF = 'command_off'
 CONF_ACK = 'ack'
 CONF_PACKET_MONITOR_ID = 'packet_monitor_id'
 CONF_PACKET_MONITOR = 'packet_monitor'
+
+CONF_SUPPORTS_HEAT = 'supports_heat'
+CONF_SUPPORTS_COOL = 'supports_cool'
+
+CONF_LENGTH = 'length'
+CONF_PRECISION = 'precision'
