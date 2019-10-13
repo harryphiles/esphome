@@ -11,7 +11,7 @@ from .const import CONF_DATA_BITS, CONF_PARITY, CONF_STOP_BITS, CONF_PREFIX, CON
                    CONF_PACKET_MONITOR, CONF_PACKET_MONITOR_ID, CONF_SUB_DEVICE, \
                    CONF_STATE_ON, CONF_STATE_OFF, CONF_COMMAND_ON, CONF_COMMAND_OFF, \
                    CONF_COMMAND_STATE, CONF_RX_WAIT, CONF_TX_WAIT, CONF_TX_RETRY_CNT, \
-                   CONF_STATE_RESPONSE
+                   CONF_STATE_RESPONSE, CONF_LENGTH, CONF_PRECISION
 
 rs485_ns = cg.esphome_ns.namespace('rs485')
 RS485Component = rs485_ns.class_('RS485Component', cg.Component)
@@ -129,7 +129,12 @@ RS485_DEVICE_SCHEMA = cv.Schema({
     cv.Required(CONF_COMMAND_ON): cv.templatable(command_hex_schema),
     cv.Required(CONF_COMMAND_OFF): cv.templatable(command_hex_schema),
     cv.Optional(CONF_COMMAND_STATE): command_hex_schema,
-    cv.Optional(CONF_UPDATE_INTERVAL, default='never'): cv.update_interval,
+}).extend(cv.polling_component_schema('60s'))
+
+STATE_NUM_SCHEMA = cv.Schema({
+    cv.Required(CONF_OFFSET): cv.int_range(min=0, max=128),
+    cv.Optional(CONF_LENGTH, default=1): cv.int_range(min=1, max=4),
+    cv.Optional(CONF_PRECISION, default=0): cv.int_range(min=0, max=5)
 })
 
 

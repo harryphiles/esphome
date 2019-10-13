@@ -5,7 +5,7 @@ from esphome.components import sensor, rs485
 from esphome.const import CONF_ID, CONF_DEVICE, CONF_LAMBDA, CONF_DATA, CONF_UPDATE_INTERVAL, \
                           UNIT_EMPTY, ICON_EMPTY, CONF_OFFSET, CONF_ACCURACY_DECIMALS
 from .. import rs485_ns, RS485Component, uint8_ptr_const, num_t_const, \
-               state_hex_schema, command_hex_schema
+               state_hex_schema, command_hex_schema, STATE_NUM_SCHEMA
 from ..const import CONF_RS485_ID, CONF_SUB_DEVICE, CONF_COMMAND_STATE, CONF_LENGTH, CONF_PRECISION
 
 DEPENDENCIES = ['rs485']
@@ -18,11 +18,7 @@ CONFIG_SCHEMA = cv.All(sensor.sensor_schema(UNIT_EMPTY, ICON_EMPTY, 1).extend({
     cv.Optional(CONF_SUB_DEVICE): state_hex_schema,
     cv.Optional(CONF_COMMAND_STATE): command_hex_schema,
     cv.Optional(CONF_LAMBDA): cv.returning_lambda,
-    cv.Optional(CONF_DATA): cv.Schema({
-        cv.Required(CONF_OFFSET): cv.int_range(min=0, max=128),
-        cv.Optional(CONF_LENGTH, default=1): cv.int_range(min=1, max=4),
-        cv.Optional(CONF_PRECISION, default=0): cv.int_range(min=0, max=5)
-    })
+    cv.Optional(CONF_DATA): STATE_NUM_SCHEMA
 }).extend(cv.polling_component_schema('60s')), cv.has_exactly_one_key(CONF_LAMBDA, CONF_DATA))
 
 def to_code(config):
