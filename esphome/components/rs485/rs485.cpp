@@ -324,12 +324,12 @@ bool RS485Device::parse_data(const uint8_t *data, const num_t len) {
         return false;
     
     // Turn OFF Message
-    if(compare(&data[0], len, &state_off_.value().data[0], state_off_.value().data.size(), state_off_.value().offset)) {
+    if(state_off_.has_value() && compare(&data[0], len, &state_off_.value().data[0], state_off_.value().data.size(), state_off_.value().offset)) {
         if(!publish(false)) publish(data, len);
         return true;
     }
     // Turn ON Message
-    else if(compare(&data[0], len, &state_on_.value().data[0], state_on_.value().data.size(), state_on_.value().offset)) {
+    else if(state_on_.has_value() && compare(&data[0], len, &state_on_.value().data[0], state_on_.value().data.size(), state_on_.value().offset)) {
         if(!publish(true)) publish(data, len);
         return true;
     }
