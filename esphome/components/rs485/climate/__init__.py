@@ -50,7 +50,7 @@ def to_code(config):
 
     state = config[CONF_STATE_TARGET]
     if cg.is_template(state):
-        templ = yield cg.templatable(state, [(uint8_ptr_const, 'data'), (num_t_const, 'len')], cmd_hex_t)
+        templ = yield cg.templatable(state, [(uint8_ptr_const, 'data'), (num_t_const, 'len')], cg.float_)
         cg.add(var.set_state_target(templ))
     else:
         args = yield state[CONF_OFFSET], state[CONF_LENGTH], state[CONF_PRECISION]
@@ -63,7 +63,7 @@ def to_code(config):
     if CONF_STATE_CURRENT in config:
         state = config[CONF_STATE_CURRENT]
         if cg.is_template(state):
-            templ = yield cg.templatable(state, [(uint8_ptr_const, 'data'), (num_t_const, 'len')], cmd_hex_t)
+            templ = yield cg.templatable(state, [(uint8_ptr_const, 'data'), (num_t_const, 'len')], cg.float_)
             cg.add(var.set_state_current(templ))
         else:
             args = yield state[CONF_OFFSET], state[CONF_LENGTH], state[CONF_PRECISION]

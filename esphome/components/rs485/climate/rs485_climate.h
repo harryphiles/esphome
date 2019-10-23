@@ -28,7 +28,7 @@ class RS485Climate : public climate::Climate, public RS485Device {
 
     void set_command_temperature(std::function<cmd_hex_t(const float x)> f) { command_temperature_func_ = f; }
     void set_command_auto(cmd_hex_t cmd) { command_auto_ = cmd; supports_auto_ = true; }
-    void set_command_cool(cmd_hex_t cmd) { command_cool_ = cmd; supports_heat_ = true; }
+    void set_command_cool(cmd_hex_t cmd) { command_cool_ = cmd; supports_cool_ = true; }
     void set_command_heat(cmd_hex_t cmd) { command_heat_ = cmd; supports_heat_ = true; }
     void set_command_away(cmd_hex_t cmd) { command_away_ = cmd; supports_away_ = true; }
 
