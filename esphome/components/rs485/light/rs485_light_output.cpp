@@ -18,11 +18,14 @@ namespace rs485 {
   }
 
   void RS485LightOutput::publish_state(bool state) {
-    if(state == state_) return;
-    else state_ = state;
-    ESP_LOGD(TAG, "'%s' RS485LightOutput::publish_state(%s)", device_name_->c_str(), state ? "True" : "False");
+    if(light_ == nullptr) return;
+    
+    light_->current_values_as_binary(&this->state_);
+    if(state == this->state_) return;
 
-    if(light_ != nullptr) light_->toggle().perform();
+    ESP_LOGD(TAG, "'%s' RS485LightOutput::publish_state(%s)", device_name_->c_str(), state ? "True" : "False");
+    this->state_ = state;
+    light_->toggle().perform();
   }
 
 

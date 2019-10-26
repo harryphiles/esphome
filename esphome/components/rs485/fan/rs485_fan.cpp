@@ -103,10 +103,10 @@ void RS485Fan::publish(const uint8_t *data, const num_t len) {
 }
 
 void RS485Fan::publish_state(bool state) {
-  if(state == this->state_) return;
-  else this->state_ = state;
+  if(state == this->fan_->state) return;
+  
   ESP_LOGD(TAG, "'%s' RS485Fan::publish_state(%s)", device_name_->c_str(), state ? "True" : "False");
-
+  this->state_ = state;
   this->fan_->toggle().perform();
 }
 
