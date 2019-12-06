@@ -3,7 +3,7 @@
 
 MAJOR_VERSION = 1
 MINOR_VERSION = 14
-PATCH_VERSION = '2'
+PATCH_VERSION = '3'
 __short_version__ = '{}.{}'.format(MAJOR_VERSION, MINOR_VERSION)
 __version__ = '{}.{}'.format(__short_version__, PATCH_VERSION)
 
@@ -520,7 +520,7 @@ UNIT_DEGREE_PER_SECOND = u'°/s'
 UNIT_DEGREES = u'°'
 UNIT_EMPTY = ''
 UNIT_HECTOPASCAL = 'hPa'
-UNIT_HZ = 'hz'
+UNIT_HERTZ = 'hz'
 UNIT_KELVIN = 'K'
 UNIT_KILOMETER = 'km'
 UNIT_KILOMETER_PER_HOUR = 'km/h'
@@ -538,6 +538,8 @@ UNIT_PULSES_PER_MINUTE = 'pulses/min'
 UNIT_SECOND = 's'
 UNIT_STEPS = 'steps'
 UNIT_VOLT = 'V'
+UNIT_VOLT_AMPS = 'VA'
+UNIT_VOLT_AMPS_REACTIVE = 'VAR'
 UNIT_WATT = 'W'
 
 DEVICE_CLASS_CONNECTIVITY = 'connectivity'

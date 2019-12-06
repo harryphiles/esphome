@@ -163,6 +163,7 @@ bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary
   BinarySensorStateResponse resp;
   resp.key = binary_sensor->get_object_id_hash();
   resp.state = state;
+  resp.missing_state = !binary_sensor->has_state();
   return this->send_binary_sensor_state_response(resp);
 }
 bool APIConnection::send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor) {
@@ -362,6 +363,7 @@ bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
   SensorStateResponse resp{};
   resp.key = sensor->get_object_id_hash();
   resp.state = state;
+  resp.missing_state = !sensor->has_state();
   return this->send_sensor_state_response(resp);
 }
 bool APIConnection::send_sensor_info(sensor::Sensor *sensor) {
@@ -375,6 +377,7 @@ bool APIConnection::send_sensor_info(sensor::Sensor *sensor) {
   msg.icon = sensor->get_icon();
   msg.unit_of_measurement = sensor->get_unit_of_measurement();
   msg.accuracy_decimals = sensor->get_accuracy_decimals();
+  msg.force_update = sensor->get_force_update();
   return this->send_list_entities_sensor_response(msg);
 }
 #endif
@@ -419,6 +422,7 @@ bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor,
   TextSensorStateResponse resp{};
   resp.key = text_sensor->get_object_id_hash();
   resp.state = std::move(state);
+  resp.missing_state = !text_sensor->has_state();
   return this->send_text_sensor_state_response(resp);
 }
 bool APIConnection::send_text_sensor_info(text_sensor::TextSensor *text_sensor) {
