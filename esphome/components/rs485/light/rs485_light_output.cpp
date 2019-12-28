@@ -1,6 +1,6 @@
 #include "rs485_light_output.h"
 #include "esphome/core/log.h"
-
+#include "esphome/components/api/api_server.h"
 
 
 namespace esphome {
@@ -18,16 +18,16 @@ namespace rs485 {
   }
 
   void RS485LightOutput::publish_state(bool state) {
-    if(light_ == nullptr) return;
-    
-    light_->current_values_as_binary(&this->state_);
-    if(state == this->state_) return;
+    if(light_ == nullptr || state == this->state_) return;
 
     ESP_LOGD(TAG, "'%s' RS485LightOutput::publish_state(%s)", device_name_->c_str(), state ? "True" : "False");
     this->state_ = state;
-    light_->toggle().perform();
-  }
 
+    this->light_->remote_values.set_state(state);
+    if(api::global_api_server->is_connected())
+      api::global_api_server->on_light_update(this->light_);
+
+  }
 
 
 }  // namespace rs485
