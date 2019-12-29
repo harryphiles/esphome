@@ -1,5 +1,6 @@
 #include "rs485_fan.h"
 #include "esphome/core/log.h"
+#include "esphome/components/api/api_server.h"
 
 namespace esphome {
 namespace rs485 {
@@ -107,7 +108,10 @@ void RS485Fan::publish_state(bool state) {
   
   ESP_LOGD(TAG, "'%s' RS485Fan::publish_state(%s)", device_name_->c_str(), state ? "True" : "False");
   this->state_ = state;
-  this->fan_->toggle().perform();
+  this->fan_->state = state;
+
+  if(api::global_api_server->is_connected())
+    api::global_api_server->on_fan_update(this->fan_);
 }
 
 void RS485Fan::publish_state(fan::FanSpeed speed) {
@@ -130,8 +134,10 @@ void RS485Fan::publish_state(fan::FanSpeed speed) {
       break;
   }
   ESP_LOGD(TAG, "'%s' RS485Fan::publish_state(%s)", device_name_->c_str(), str_speed.c_str());
-
-  this->fan_->make_call().set_speed(speed).perform();
+  this->fan_->speed = speed;
+  
+  if(api::global_api_server->is_connected())
+    api::global_api_server->on_fan_update(this->fan_);
 }
 
 
