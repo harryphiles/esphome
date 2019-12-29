@@ -9,7 +9,7 @@ COPY esphome /opt/esphome/esphome
 RUN pip3 install --no-cache-dir -e /opt/esphome
 
 # Build arguments
-ARG BUILD_VERSION=dev
+ARG BUILD_VERSION=master
 
 # Labels
 LABEL \
