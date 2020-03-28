@@ -42,7 +42,7 @@ void RS485Climate::publish(const uint8_t *data, const num_t len) {
   bool changed = false;
 
   // turn off
-  if(this->state_off_.has_value() && compare(&data[0], len, &state_off_.value().data[0], state_off_.value().data.size(), state_off_.value().offset)) {
+  if(this->state_off_.has_value() && compare(&data[0], len, &state_off_.value())) {
     if(this->mode != climate::CLIMATE_MODE_OFF || this->away) {
       this->mode = climate::CLIMATE_MODE_OFF;
       this->away = false;
@@ -50,7 +50,7 @@ void RS485Climate::publish(const uint8_t *data, const num_t len) {
     }
   }
   // heat mode
-  else if(this->state_heat_.has_value() && compare(&data[0], len, &state_heat_.value().data[0], state_heat_.value().data.size(), state_heat_.value().offset)) {
+  else if(this->state_heat_.has_value() && compare(&data[0], len, &state_heat_.value())) {
     if(this->mode != climate::CLIMATE_MODE_HEAT || this->away) {
       this->mode = climate::CLIMATE_MODE_HEAT;
       this->away = false;
@@ -58,7 +58,7 @@ void RS485Climate::publish(const uint8_t *data, const num_t len) {
     }
   }
   // cool mode
-  else if(this->state_cool_.has_value() && compare(&data[0], len, &state_cool_.value().data[0], state_cool_.value().data.size(), state_cool_.value().offset)) {
+  else if(this->state_cool_.has_value() && compare(&data[0], len, &state_cool_.value())) {
     if(this->mode != climate::CLIMATE_MODE_COOL || this->away) {
       this->mode = climate::CLIMATE_MODE_COOL;
       this->away = false;
@@ -66,7 +66,7 @@ void RS485Climate::publish(const uint8_t *data, const num_t len) {
     }
   }
   // auto mode
-  else if(this->state_auto_.has_value() && compare(&data[0], len, &state_auto_.value().data[0], state_auto_.value().data.size(), state_auto_.value().offset)) {
+  else if(this->state_auto_.has_value() && compare(&data[0], len, &state_auto_.value())) {
     if(this->mode != climate::CLIMATE_MODE_AUTO || this->away) {
       this->mode = climate::CLIMATE_MODE_AUTO;
       this->away = false;
@@ -74,7 +74,7 @@ void RS485Climate::publish(const uint8_t *data, const num_t len) {
     }
   }
   // away
-  else if(this->state_away_.has_value() && compare(&data[0], len, &state_away_.value().data[0], state_away_.value().data.size(), state_away_.value().offset)) {
+  else if(this->state_away_.has_value() && compare(&data[0], len, &state_away_.value())) {
     if(!this->away) {
       this->away = true;
       changed = true;

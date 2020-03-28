@@ -71,7 +71,7 @@ void RS485Component::loop() {
 
         // Patket type
         if(state_response_.has_value()) {
-            if(compare(&rx_buffer_[prefix_len_], rx_bytesRead_-prefix_len_, &state_response_.value().data[0], state_response_.value().data.size(), state_response_.value().offset))
+            if(compare(&rx_buffer_[prefix_len_], rx_bytesRead_-prefix_len_, &state_response_.value()))
                 response_wait_ = false;
             else
                 response_wait_ = true;
@@ -298,44 +298,43 @@ void RS485Device::dump_rs485_device_config(const char *TAG) {
         ESP_LOGCONFIG(TAG, "  Sub device: %s, offset: %d", hexencode(&sub_device_.value().data[0], sub_device_.value().data.size()).c_str(), sub_device_.value().offset);
 
     if(state_on_.has_value())
-        ESP_LOGCONFIG(TAG, "  State ON: %s, offset: %d", hexencode(&state_on_.value().data[0], state_on_.value().data.size()).c_str(), state_on_.value().offset);
+        ESP_LOGCONFIG(TAG, "  State ON: %s, offset: %d, and_operator: %s, inverted: %s", hexencode(&state_on_.value().data[0], state_on_.value().data.size()).c_str(), state_on_.value().offset, YESNO(state_on_.value().and_operator), YESNO(state_on_.value().inverted));
     if(state_off_.has_value())
-        ESP_LOGCONFIG(TAG, "  State OFF: %s, offset: %d", hexencode(&state_off_.value().data[0], state_off_.value().data.size()).c_str(), state_off_.value().offset);
+        ESP_LOGCONFIG(TAG, "  State OFF: %s, offset: %d, and_operator: %s, inverted: %s", hexencode(&state_off_.value().data[0], state_off_.value().data.size()).c_str(), state_off_.value().offset, YESNO(state_off_.value().and_operator), YESNO(state_off_.value().inverted));
     
     if(command_on_.has_value())
         ESP_LOGCONFIG(TAG, "  Command ON: %s", hexencode(&command_on_.value().data[0], command_on_.value().data.size()).c_str());
-    if(command_on_.has_value())
+    if(command_on_.has_value() && command_on_.value().ack.size() > 0)
         ESP_LOGCONFIG(TAG, "  Command ON Ack: %s", hexencode(&command_on_.value().ack[0], command_on_.value().ack.size()).c_str());
 
     if(command_off_.has_value())
         ESP_LOGCONFIG(TAG, "  Command OFF: %s", hexencode(&command_off_.value().data[0], command_off_.value().data.size()).c_str());
-    if(command_off_.has_value())
+    if(command_off_.has_value() && command_off_.value().ack.size() > 0)
         ESP_LOGCONFIG(TAG, "  Command OFF Ack: %s", hexencode(&command_off_.value().ack[0], command_off_.value().ack.size()).c_str());
 
     if(command_state_.has_value())
         ESP_LOGCONFIG(TAG, "  Command State: %s", hexencode(&command_state_.value().data[0], command_state_.value().data.size()).c_str());
-    if(command_state_.has_value()) {
+    if(command_state_.has_value() && command_state_.value().ack.size() > 0)
         ESP_LOGCONFIG(TAG, "  Command State Ack: %s", hexencode(&command_state_.value().ack[0], command_state_.value().ack.size()).c_str());
-        ESP_LOGCONFIG(TAG, "  Status request interval: %u", update_interval_ );
-    }
+        
     LOG_UPDATE_INTERVAL(this);
 }
 
 bool RS485Device::parse_data(const uint8_t *data, const num_t len) {
     if(tx_pending_) return false;
 
-    if(!compare(&data[0], len, &device_.data[0], device_.data.size(), device_.offset))
+    if(!compare(&data[0], len, &device_))
         return false;
-    else if(sub_device_.has_value() && !compare(&data[0], len, &sub_device_.value().data[0], sub_device_.value().data.size(), sub_device_.value().offset))
+    else if(sub_device_.has_value() && !compare(&data[0], len, &sub_device_.value()))
         return false;
     
     // Turn OFF Message
-    if(state_off_.has_value() && compare(&data[0], len, &state_off_.value().data[0], state_off_.value().data.size(), state_off_.value().offset)) {
+    if(state_off_.has_value() && compare(&data[0], len, &state_off_.value())) {
         if(!publish(false)) publish(data, len);
         return true;
     }
     // Turn ON Message
-    else if(state_on_.has_value() && compare(&data[0], len, &state_on_.value().data[0], state_on_.value().data.size(), state_on_.value().offset)) {
+    else if(state_on_.has_value() && compare(&data[0], len, &state_on_.value())) {
         if(!publish(true)) publish(data, len);
         return true;
     }
@@ -357,7 +356,7 @@ bool SerialMonitor::parse_data(const uint8_t *data, const num_t len) {
     if(filters_.size() == 0) found = true;
     else {
         for(hex_t filter : filters_) {
-            found = compare(&data[0], len, &(filter.data[0]), filter.data.size(), filter.offset);
+            found = compare(&data[0], len, &filter);
             if(found) break;
         }
     }
@@ -386,6 +385,15 @@ bool compare(const uint8_t *data1, const num_t len1, const uint8_t *data2, const
         return false;
     //ESP_LOGD(TAG, "compare(0x%02X, 0x%02X, %d)=> %d", data1[offset], data2[0], len2, memcmp(&data1[offset], &data2[0], len2));
     return memcmp(&data1[offset], &data2[0], len2) == 0;
+}
+
+bool compare(const uint8_t *data1, const num_t len1, const hex_t *data2) {
+    if(!data2->and_operator)
+        return compare(data1, len1, &data2->data[0], data2->data.size(), data2->offset);
+    else if(len1 - data2->offset > 0 && data2->data.size() > 0)
+        return data1[data2->offset] & (data2->data[0]) ? !data2->inverted : data2->inverted;
+    else
+        return false;
 }
 
 float hex_to_float(const uint8_t *data, const num_t len, const num_t precision) {

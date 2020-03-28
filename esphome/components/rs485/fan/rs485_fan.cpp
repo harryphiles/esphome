@@ -86,17 +86,17 @@ void RS485Fan::perform() {
 
 void RS485Fan::publish(const uint8_t *data, const num_t len) {
   // Speed high
-  if(compare(&data[0], len, &state_speed_high_.data[0], state_speed_high_.data.size(), state_speed_high_.offset)) {
+  if(compare(&data[0], len, &state_speed_high_)) {
       publish_state(fan::FAN_SPEED_HIGH);
       return;
   }
   // Speed medium
-  else if(compare(&data[0], len, &state_speed_medium_.data[0], state_speed_medium_.data.size(), state_speed_medium_.offset)) {
+  else if(compare(&data[0], len, &state_speed_medium_)) {
       publish_state(fan::FAN_SPEED_MEDIUM);
       return;
   }
   // Speed low
-  else if(compare(&data[0], len, &state_speed_low_.data[0], state_speed_low_.data.size(), state_speed_low_.offset)) {
+  else if(compare(&data[0], len, &state_speed_low_)) {
       publish_state(fan::FAN_SPEED_LOW);
       return;
   }

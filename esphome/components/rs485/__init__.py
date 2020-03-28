@@ -2,7 +2,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation
 from esphome.const import CONF_ID, CONF_BAUD_RATE, CONF_OFFSET, CONF_DATA, \
-                          CONF_UPDATE_INTERVAL, CONF_DEVICE
+                          CONF_UPDATE_INTERVAL, CONF_DEVICE, CONF_INVERTED
 from esphome.core import CORE, coroutine
 from esphome.util import SimpleRegistry
 from esphome.py_compat import text_type, binary_type, char_to_byte
@@ -11,7 +11,8 @@ from .const import CONF_DATA_BITS, CONF_PARITY, CONF_STOP_BITS, CONF_PREFIX, CON
                    CONF_PACKET_MONITOR, CONF_PACKET_MONITOR_ID, CONF_SUB_DEVICE, \
                    CONF_STATE_ON, CONF_STATE_OFF, CONF_COMMAND_ON, CONF_COMMAND_OFF, \
                    CONF_COMMAND_STATE, CONF_RX_WAIT, CONF_TX_WAIT, CONF_TX_RETRY_CNT, \
-                   CONF_STATE_RESPONSE, CONF_LENGTH, CONF_PRECISION
+                   CONF_STATE_RESPONSE, CONF_LENGTH, CONF_PRECISION, CONF_AND_OPERATOR, \
+                   CONF_CHECKSUM2, CONF_CHECKSUM2_LAMBDA
 
 rs485_ns = cg.esphome_ns.namespace('rs485')
 RS485Component = rs485_ns.class_('RS485Component', cg.Component)
@@ -33,11 +34,13 @@ def validate_hex_data(value):
 # State HEX (hex_t): int offset, uint8_t[] data
 STATE_HEX_SCHEMA = cv.Schema({
     cv.Required(CONF_DATA): validate_hex_data,
-    cv.Optional(CONF_OFFSET, default=0): cv.int_range(min=0, max=128)
+    cv.Optional(CONF_OFFSET, default=0): cv.int_range(min=0, max=128),
+    cv.Optional(CONF_AND_OPERATOR, default=False): cv.boolean,
+    cv.Optional(CONF_INVERTED, default=False): cv.boolean
 })
 def shorthand_state_hex(value):
     value = validate_hex_data(value)
-    return STATE_HEX_SCHEMA({CONF_DATA: value, CONF_OFFSET: 0})
+    return STATE_HEX_SCHEMA({CONF_DATA: value})
 def state_hex_schema(value):
     if isinstance(value, dict):
         return STATE_HEX_SCHEMA(value)
@@ -189,8 +192,10 @@ def state_hex_expression(conf):
     if conf is None:
         return
     data = conf[CONF_DATA]
+    and_operator = conf[CONF_AND_OPERATOR]
+    inverted = conf[CONF_INVERTED]
     offset = conf[CONF_OFFSET]
-    yield offset, data
+    yield offset, and_operator, inverted, data
 
 @coroutine
 def command_hex_expression(conf):
