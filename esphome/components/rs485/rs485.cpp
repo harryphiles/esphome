@@ -48,6 +48,10 @@ void RS485Component::setup() {
         this->hw_serial_ = &Serial2;
         this->hw_serial_->begin(conf_baud_, serialconfig);
     #endif
+    
+    if(checksum_) this->checksum_len_++;
+    if(checksum2_) this->checksum_len_++;
+
     ESP_LOGI(TAG, "HW Serial Initaialize.");
     rx_lastTime_ = millis();
 }
@@ -209,8 +213,13 @@ void RS485Component::write_with_header(const std::vector<uint8_t> &data) {
     write_array(data);
 
     // XOR Checksum
+    uint8_t crc = 0;
     if(checksum_)
-        write_byte(make_checksum(&(data[0]), data.size()));
+        write_byte(crc = make_checksum(&(data[0]), data.size()));
+
+    // ADD Checksum
+    if(checksum2_)
+        write_byte(make_checksum2(&(data[0]), data.size(), crc));
 
     // Footer
     if(suffix_.has_value()) write_array(suffix_.value());
@@ -260,10 +269,16 @@ bool RS485Component::validate(const uint8_t *data, const num_t len) {
         ESP_LOGW(TAG, "[Read] Suffix not match: %s", hexencode(&data[0], len).c_str());
         return false;
     }
-    if(checksum_ && make_checksum(&data[prefix_len_], len-prefix_len_-suffix_len_-1) != data[len-suffix_len_-1]) {
+    uint8_t crc = checksum_ ? make_checksum(&data[prefix_len_], len-prefix_len_-suffix_len_-checksum_len_) : 0;
+    if(checksum_ && crc != data[len-suffix_len_-checksum_len_]) {
         ESP_LOGW(TAG, "[Read] Checksum error: %s", hexencode(&data[0], len).c_str());
         return false;
     }
+    if(checksum2_ && make_checksum2(&data[prefix_len_], len-prefix_len_-suffix_len_-checksum_len_, crc) != data[len-suffix_len_-1]) {
+        ESP_LOGW(TAG, "[Read] Checksum2 error: %s", hexencode(&data[0], len).c_str());
+        return false;
+    }
+
     return true;
 }
 
@@ -272,7 +287,7 @@ uint8_t RS485Component::make_checksum(const uint8_t *data, const num_t len) cons
         return (*checksum_f_)(data, len);
     }
     else {
-        // CheckSum8 Xor (Default)
+        // CheckSum8 Xor
         uint8_t crc = 0;
         if(prefix_.has_value())
             for(num_t i=0; i<prefix_len_; i++)
@@ -283,6 +298,23 @@ uint8_t RS485Component::make_checksum(const uint8_t *data, const num_t len) cons
     }
 }
 
+uint8_t RS485Component::make_checksum2(const uint8_t *data, const num_t len, const uint8_t checksum1) const {
+    if (this->checksum2_f_.has_value()) {
+        return (*checksum2_f_)(data, len, checksum1);
+    }
+    else {
+        // CheckSum8 Add
+        uint8_t crc = 0;
+        if(prefix_.has_value())
+            for(num_t i=0; i<prefix_len_; i++)
+                crc += prefix_.value()[i];
+        for(num_t i=0; i<len; i++)
+            crc += data[i];
+        if(checksum_)
+            crc += checksum1;
+        return crc;
+    }
+}
 
 
 void RS485Device::update() {

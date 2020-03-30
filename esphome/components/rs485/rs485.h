@@ -151,14 +151,17 @@ class RS485Component : public Component {
         /** 종료부(수신시 Check, 발신시 Append) */
         void set_suffix(std::vector<uint8_t> suffix) { suffix_ = suffix; suffix_len_ = suffix.size(); }
 
-        /** CheckSum 사용 여부 (수신시 Check, 발신시 Append) */
-        void set_checksum(bool checksum) { checksum_ = checksum; }
-
-        /** CheckSum Lambda */
+        /** CheckSum8 Xor 사용 여부 (수신시 Check, 발신시 Append) */
+        void set_checksum(bool checksum) { checksum_ = checksum; } // xor sum
         void set_checksum_lambda(std::function<uint8_t(const uint8_t *data, const num_t len)> &&f) { checksum_f_ = f; checksum_ = true; }
+
+        /** CheckSum8 Add 사용 여부 (수신시 Check, 발신시 Append) */
+        void set_checksum2(bool checksum2) { checksum2_ = checksum2; } // add sum
+        void set_checksum2_lambda(std::function<uint8_t(const uint8_t *data, const num_t len, const uint8_t checksum1)> &&f) { checksum2_f_ = f; checksum2_ = true; }
 
         /** CheckSum Calc */
         uint8_t make_checksum(const uint8_t *data, const num_t len) const;
+        uint8_t make_checksum2(const uint8_t *data, const num_t len, const uint8_t checksum1) const;
 
         void dump_config() override;
         void setup() override;
@@ -206,8 +209,11 @@ class RS485Component : public Component {
         num_t prefix_len_{0};
         optional<std::vector<uint8_t>> suffix_{};
         num_t suffix_len_{0};
+        num_t checksum_len_{0};
         bool checksum_{false};
+        bool checksum2_{false};
         optional<std::function<uint8_t(const uint8_t *data, const num_t len)>> checksum_f_{};
+        optional<std::function<uint8_t(const uint8_t *data, const num_t len, const uint8_t checksum1)>> checksum2_f_{};
 
         /** 수신데이터 검증 */
         bool validate(const uint8_t *data, const num_t len);

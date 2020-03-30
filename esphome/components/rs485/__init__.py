@@ -1,3 +1,4 @@
+import logging
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation
@@ -12,7 +13,9 @@ from .const import CONF_DATA_BITS, CONF_PARITY, CONF_STOP_BITS, CONF_PREFIX, CON
                    CONF_STATE_ON, CONF_STATE_OFF, CONF_COMMAND_ON, CONF_COMMAND_OFF, \
                    CONF_COMMAND_STATE, CONF_RX_WAIT, CONF_TX_WAIT, CONF_TX_RETRY_CNT, \
                    CONF_STATE_RESPONSE, CONF_LENGTH, CONF_PRECISION, CONF_AND_OPERATOR, \
-                   CONF_CHECKSUM2, CONF_CHECKSUM2_LAMBDA
+                   CONF_CHECKSUM2
+
+_LOGGER = logging.getLogger(__name__)
 
 rs485_ns = cg.esphome_ns.namespace('rs485')
 RS485Component = rs485_ns.class_('RS485Component', cg.Component)
@@ -73,8 +76,9 @@ CONFIG_SCHEMA = cv.All(cv.Schema({
     cv.Optional(CONF_TX_RETRY_CNT): cv.int_range(min=1, max=10),
     cv.Optional(CONF_PREFIX): validate_hex_data,
     cv.Optional(CONF_SUFFIX): validate_hex_data,
-    cv.Optional(CONF_CHECKSUM): cv.boolean,
+    cv.Optional(CONF_CHECKSUM): cv.templatable(cv.boolean),
     cv.Optional(CONF_CHECKSUM_LAMBDA): cv.returning_lambda,
+    cv.Optional(CONF_CHECKSUM2): cv.templatable(cv.boolean),
     cv.Optional(CONF_PACKET_MONITOR): cv.ensure_list(state_hex_schema),
     cv.Optional(CONF_STATE_RESPONSE): state_hex_schema,
 }).extend(cv.COMPONENT_SCHEMA))
@@ -99,13 +103,32 @@ def to_code(config):
         cg.add(var.set_prefix(config[CONF_PREFIX]))
     if CONF_SUFFIX in config:
         cg.add(var.set_suffix(config[CONF_SUFFIX]))
+    
     if CONF_CHECKSUM_LAMBDA in config:
+        _LOGGER.warning(CONF_CHECKSUM_LAMBDA + " is deprecated and will be removed in a future version.");
         template_ = yield cg.process_lambda(config[CONF_CHECKSUM_LAMBDA],
                                             [(uint8_ptr_const, 'data'), (num_t_const, 'len')],
                                             return_type=cg.uint8)
         cg.add(var.set_checksum_lambda(template_))
     if CONF_CHECKSUM in config:
-        cg.add(var.set_checksum(config[CONF_CHECKSUM]))
+        data = config[CONF_CHECKSUM]
+        if cg.is_template(data):
+            template_ = yield cg.process_lambda(data,
+                                                [(uint8_ptr_const, 'data'), (num_t_const, 'len')],
+                                                return_type=cg.uint8)
+            cg.add(var.set_checksum_lambda(template_))
+        else:
+            cg.add(var.set_checksum(data))
+
+    if CONF_CHECKSUM2 in config:
+        data = config[CONF_CHECKSUM2]
+        if cg.is_template(data):
+            template_ = yield cg.process_lambda(data,
+                                                [(uint8_ptr_const, 'data'), (num_t_const, 'len'), (uint8_const, 'checksum1')],
+                                                return_type=cg.uint8)
+            cg.add(var.set_checksum2_lambda(template_))
+        else:
+            cg.add(var.set_checksum2(data))
 
     if CONF_STATE_RESPONSE in config:
         state_response = yield state_hex_expression(config[CONF_STATE_RESPONSE])

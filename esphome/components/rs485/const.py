@@ -13,7 +13,6 @@ CONF_SUFFIX = 'suffix'
 CONF_CHECKSUM = 'checksum'
 CONF_CHECKSUM2 = 'checksum2'
 CONF_CHECKSUM_LAMBDA = 'checksum_lambda'
-CONF_CHECKSUM2_LAMBDA = 'checksum2_lambda'
 CONF_SUB_DEVICE = 'sub_device'
 CONF_AND_OPERATOR = 'and_operator'
 
