@@ -182,6 +182,12 @@ void RS485Component::tx_proc() {
             tx_ack_wait_ = true;
             tx_retry_cnt_ = 1;
         }
+        else {
+            tx_current_cmd_ = nullptr;
+            tx_current_device_ = nullptr;
+            tx_ack_wait_ = true;
+            tx_retry_cnt_ = 1;
+        }
         tx_queue_late_.pop();
     }
 
@@ -198,6 +204,10 @@ void RS485Component::tx_proc() {
         }
         else if(tx_queue_.front().device) {
             (*tx_queue_.front().device).callback();
+            tx_ack_wait_ = true;
+        }
+        else {
+            tx_ack_wait_ = true;
         }
         tx_queue_.pop();
     }
