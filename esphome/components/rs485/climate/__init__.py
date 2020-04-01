@@ -31,8 +31,8 @@ CONFIG_SCHEMA = cv.All(climate.CLIMATE_SCHEMA.extend({
     cv.Optional(CONF_COMMAND_COOL): command_hex_schema,
     cv.Optional(CONF_COMMAND_AWAY): command_hex_schema,
 }).extend(rs485.RS485_DEVICE_SCHEMA).extend({
-    cv.Optional(CONF_COMMAND_ON): cv.invalid("RS485 Binary Sensor do not support command_on!"),
-    cv.Optional(CONF_STATE_ON): cv.invalid("RS485 Binary Sensor do not support state_on!")
+    cv.Optional(CONF_COMMAND_ON): cv.invalid("RS485 Climate do not support command_on!"),
+    cv.Optional(CONF_STATE_ON): cv.invalid("RS485 Climate do not support state_on!")
 }).extend(cv.COMPONENT_SCHEMA)
 , cv.has_exactly_one_key(CONF_SENSOR, CONF_STATE_CURRENT)
 , cv.has_at_least_one_key(CONF_COMMAND_HEAT, CONF_COMMAND_COOL, CONF_COMMAND_AUTO)

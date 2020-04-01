@@ -1,8 +1,9 @@
+import logging
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation
 from esphome.const import CONF_ID, CONF_BAUD_RATE, CONF_OFFSET, CONF_DATA, \
-                          CONF_UPDATE_INTERVAL, CONF_DEVICE
+                          CONF_UPDATE_INTERVAL, CONF_DEVICE, CONF_INVERTED
 from esphome.core import CORE, coroutine
 from esphome.util import SimpleRegistry
 from esphome.py_compat import text_type, binary_type, char_to_byte
@@ -11,7 +12,10 @@ from .const import CONF_DATA_BITS, CONF_PARITY, CONF_STOP_BITS, CONF_PREFIX, CON
                    CONF_PACKET_MONITOR, CONF_PACKET_MONITOR_ID, CONF_SUB_DEVICE, \
                    CONF_STATE_ON, CONF_STATE_OFF, CONF_COMMAND_ON, CONF_COMMAND_OFF, \
                    CONF_COMMAND_STATE, CONF_RX_WAIT, CONF_TX_WAIT, CONF_TX_RETRY_CNT, \
-                   CONF_STATE_RESPONSE, CONF_LENGTH, CONF_PRECISION
+                   CONF_STATE_RESPONSE, CONF_LENGTH, CONF_PRECISION, CONF_AND_OPERATOR, \
+                   CONF_CHECKSUM2
+
+_LOGGER = logging.getLogger(__name__)
 
 rs485_ns = cg.esphome_ns.namespace('rs485')
 RS485Component = rs485_ns.class_('RS485Component', cg.Component)
@@ -33,11 +37,13 @@ def validate_hex_data(value):
 # State HEX (hex_t): int offset, uint8_t[] data
 STATE_HEX_SCHEMA = cv.Schema({
     cv.Required(CONF_DATA): validate_hex_data,
-    cv.Optional(CONF_OFFSET, default=0): cv.int_range(min=0, max=128)
+    cv.Optional(CONF_OFFSET, default=0): cv.int_range(min=0, max=128),
+    cv.Optional(CONF_AND_OPERATOR, default=False): cv.boolean,
+    cv.Optional(CONF_INVERTED, default=False): cv.boolean
 })
 def shorthand_state_hex(value):
     value = validate_hex_data(value)
-    return STATE_HEX_SCHEMA({CONF_DATA: value, CONF_OFFSET: 0})
+    return STATE_HEX_SCHEMA({CONF_DATA: value})
 def state_hex_schema(value):
     if isinstance(value, dict):
         return STATE_HEX_SCHEMA(value)
@@ -70,8 +76,9 @@ CONFIG_SCHEMA = cv.All(cv.Schema({
     cv.Optional(CONF_TX_RETRY_CNT): cv.int_range(min=1, max=10),
     cv.Optional(CONF_PREFIX): validate_hex_data,
     cv.Optional(CONF_SUFFIX): validate_hex_data,
-    cv.Optional(CONF_CHECKSUM): cv.boolean,
+    cv.Optional(CONF_CHECKSUM): cv.templatable(cv.boolean),
     cv.Optional(CONF_CHECKSUM_LAMBDA): cv.returning_lambda,
+    cv.Optional(CONF_CHECKSUM2): cv.templatable(cv.boolean),
     cv.Optional(CONF_PACKET_MONITOR): cv.ensure_list(state_hex_schema),
     cv.Optional(CONF_STATE_RESPONSE): state_hex_schema,
 }).extend(cv.COMPONENT_SCHEMA))
@@ -96,13 +103,32 @@ def to_code(config):
         cg.add(var.set_prefix(config[CONF_PREFIX]))
     if CONF_SUFFIX in config:
         cg.add(var.set_suffix(config[CONF_SUFFIX]))
+    
     if CONF_CHECKSUM_LAMBDA in config:
+        _LOGGER.warning(CONF_CHECKSUM_LAMBDA + " is deprecated and will be removed in a future version.");
         template_ = yield cg.process_lambda(config[CONF_CHECKSUM_LAMBDA],
                                             [(uint8_ptr_const, 'data'), (num_t_const, 'len')],
                                             return_type=cg.uint8)
         cg.add(var.set_checksum_lambda(template_))
     if CONF_CHECKSUM in config:
-        cg.add(var.set_checksum(config[CONF_CHECKSUM]))
+        data = config[CONF_CHECKSUM]
+        if cg.is_template(data):
+            template_ = yield cg.process_lambda(data,
+                                                [(uint8_ptr_const, 'data'), (num_t_const, 'len')],
+                                                return_type=cg.uint8)
+            cg.add(var.set_checksum_lambda(template_))
+        else:
+            cg.add(var.set_checksum(data))
+
+    if CONF_CHECKSUM2 in config:
+        data = config[CONF_CHECKSUM2]
+        if cg.is_template(data):
+            template_ = yield cg.process_lambda(data,
+                                                [(uint8_ptr_const, 'data'), (num_t_const, 'len'), (uint8_const, 'checksum1')],
+                                                return_type=cg.uint8)
+            cg.add(var.set_checksum2_lambda(template_))
+        else:
+            cg.add(var.set_checksum2(data))
 
     if CONF_STATE_RESPONSE in config:
         state_response = yield state_hex_expression(config[CONF_STATE_RESPONSE])
@@ -189,8 +215,10 @@ def state_hex_expression(conf):
     if conf is None:
         return
     data = conf[CONF_DATA]
+    and_operator = conf[CONF_AND_OPERATOR]
+    inverted = conf[CONF_INVERTED]
     offset = conf[CONF_OFFSET]
-    yield offset, data
+    yield offset, and_operator, inverted, data
 
 @coroutine
 def command_hex_expression(conf):
