@@ -31,6 +31,7 @@ class RS485Climate : public climate::Climate, public RS485Device {
     void set_command_cool(cmd_hex_t cmd) { command_cool_ = cmd; supports_cool_ = true; }
     void set_command_heat(cmd_hex_t cmd) { command_heat_ = cmd; supports_heat_ = true; }
     void set_command_away(cmd_hex_t cmd) { command_away_ = cmd; supports_away_ = true; }
+    void set_command_home(cmd_hex_t cmd) { command_home_ = cmd; }
 
   protected:
     /// Override control to change settings of the climate device.
@@ -62,6 +63,7 @@ class RS485Climate : public climate::Climate, public RS485Device {
     std::function<cmd_hex_t(const float x)> command_temperature_func_{};
     cmd_hex_t command_temperature_{};
     optional<cmd_hex_t> command_away_{};
+    optional<cmd_hex_t> command_home_{};
     optional<cmd_hex_t> command_auto_{};
     optional<cmd_hex_t> command_cool_{};
     optional<cmd_hex_t> command_heat_{};

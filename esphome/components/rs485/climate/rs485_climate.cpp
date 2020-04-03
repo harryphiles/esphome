@@ -43,40 +43,36 @@ void RS485Climate::publish(const uint8_t *data, const num_t len) {
 
   // turn off
   if(this->state_off_.has_value() && compare(&data[0], len, &state_off_.value())) {
-    if(this->mode != climate::CLIMATE_MODE_OFF || this->away) {
+    if(this->mode != climate::CLIMATE_MODE_OFF) {
       this->mode = climate::CLIMATE_MODE_OFF;
-      this->away = false;
       changed = true;
     }
   }
   // heat mode
   else if(this->state_heat_.has_value() && compare(&data[0], len, &state_heat_.value())) {
-    if(this->mode != climate::CLIMATE_MODE_HEAT || this->away) {
+    if(this->mode != climate::CLIMATE_MODE_HEAT) {
       this->mode = climate::CLIMATE_MODE_HEAT;
-      this->away = false;
       changed = true;
     }
   }
   // cool mode
   else if(this->state_cool_.has_value() && compare(&data[0], len, &state_cool_.value())) {
-    if(this->mode != climate::CLIMATE_MODE_COOL || this->away) {
+    if(this->mode != climate::CLIMATE_MODE_COOL) {
       this->mode = climate::CLIMATE_MODE_COOL;
-      this->away = false;
       changed = true;
     }
   }
   // auto mode
   else if(this->state_auto_.has_value() && compare(&data[0], len, &state_auto_.value())) {
-    if(this->mode != climate::CLIMATE_MODE_AUTO || this->away) {
+    if(this->mode != climate::CLIMATE_MODE_AUTO) {
       this->mode = climate::CLIMATE_MODE_AUTO;
-      this->away = false;
       changed = true;
     }
   }
   // away
-  else if(this->state_away_.has_value() && compare(&data[0], len, &state_away_.value())) {
-    if(!this->away) {
-      this->away = true;
+  if(this->state_away_.has_value()) {
+    if(this->away != compare(&data[0], len, &state_away_.value())) {
+      this->away = !this->away;
       changed = true;
     }
   }
@@ -151,6 +147,11 @@ void RS485Climate::control(const climate::ClimateCall &call) {
   if(this->command_away_.has_value() && call.get_away().has_value() && this->away != *call.get_away()) {
     this->away = *call.get_away();
     if(this->away) write_with_header(&this->command_away_.value());
+    else if(this->command_home_.has_value()) write_with_header(&this->command_home_.value());
+    else if(this->mode == climate::CLIMATE_MODE_OFF) write_with_header(this->get_command_off());
+    else if(this->mode == climate::CLIMATE_MODE_HEAT && this->command_heat_.has_value()) write_with_header(&this->command_heat_.value());
+    else if(this->mode == climate::CLIMATE_MODE_COOL && this->command_cool_.has_value()) write_with_header(&this->command_cool_.value());
+    else if(this->mode == climate::CLIMATE_MODE_AUTO && this->command_auto_.has_value()) write_with_header(&this->command_auto_.value());
   }
 
   this->publish_state();
