@@ -8,7 +8,7 @@ from ..const import CONF_STATE_CURRENT, CONF_STATE_TARGET, \
                     CONF_STATE_AUTO, CONF_STATE_HEAT, CONF_STATE_COOL, CONF_STATE_AWAY, \
                     CONF_COMMAND_AUTO, CONF_COMMAND_HEAT, CONF_COMMAND_COOL, CONF_COMMAND_AWAY, \
                     CONF_COMMAND_TEMPERATURE, CONF_LENGTH, CONF_PRECISION, \
-                    CONF_COMMAND_ON, CONF_STATE_ON
+                    CONF_COMMAND_ON, CONF_STATE_ON, CONF_COMMAND_HOME
                     
 
 AUTO_LOAD = ['sensor']
@@ -30,6 +30,7 @@ CONFIG_SCHEMA = cv.All(climate.CLIMATE_SCHEMA.extend({
     cv.Optional(CONF_COMMAND_HEAT): command_hex_schema,
     cv.Optional(CONF_COMMAND_COOL): command_hex_schema,
     cv.Optional(CONF_COMMAND_AWAY): command_hex_schema,
+    cv.Optional(CONF_COMMAND_HOME): command_hex_schema,
 }).extend(rs485.RS485_DEVICE_SCHEMA).extend({
     cv.Optional(CONF_COMMAND_ON): cv.invalid("RS485 Climate do not support command_on!"),
     cv.Optional(CONF_STATE_ON): cv.invalid("RS485 Climate do not support state_on!")
