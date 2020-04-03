@@ -299,9 +299,9 @@ uint8_t RS485Component::make_checksum(const uint8_t *data, const num_t len) cons
     else {
         // CheckSum8 Xor
         uint8_t crc = 0;
-        if(prefix_.has_value())
-            for(num_t i=0; i<prefix_len_; i++)
-                crc ^= prefix_.value()[i];
+        if(this->prefix_.has_value())
+            for(num_t i=0; i<this->prefix_len_; i++)
+                crc ^= this->prefix_.value()[i];
         for(num_t i=0; i<len; i++)
             crc ^= data[i];
         return crc;
@@ -315,12 +315,12 @@ uint8_t RS485Component::make_checksum2(const uint8_t *data, const num_t len, con
     else {
         // CheckSum8 Add
         uint8_t crc = 0;
-        if(prefix_.has_value())
-            for(num_t i=0; i<prefix_len_; i++)
-                crc += prefix_.value()[i];
+        if(this->prefix_.has_value())
+            for(num_t i=0; i<this->prefix_len_; i++)
+                crc += this->prefix_.value()[i];
         for(num_t i=0; i<len; i++)
             crc += data[i];
-        if(checksum_)
+        if(this->checksum_)
             crc += checksum1;
         return crc;
     }
@@ -431,9 +431,20 @@ bool compare(const uint8_t *data1, const num_t len1, const uint8_t *data2, const
 
 bool compare(const uint8_t *data1, const num_t len1, const hex_t *data2) {
     if(!data2->and_operator)
-        return compare(data1, len1, &data2->data[0], data2->data.size(), data2->offset);
-    else if(len1 - data2->offset > 0 && data2->data.size() > 0)
-        return data1[data2->offset] & (data2->data[0]) ? !data2->inverted : data2->inverted;
+        return compare(data1, len1, &data2->data[0], data2->data.size(), data2->offset) ? !data2->inverted : data2->inverted;
+    else if(len1 - data2->offset > 0 && data2->data.size() > 0) {
+        uint8_t val = data1[data2->offset] & (data2->data[0]);
+        if(data2->data.size() == 1) return val ? !data2->inverted : data2->inverted;
+        else {
+            bool ret = false;
+            for(num_t i=1; i < data2->data.size(); i++) 
+                if(val == data2->data[i]) {
+                    ret = true;
+                    break;
+                }
+            return ret ? !data2->inverted : data2->inverted;
+        }
+    }
     else
         return false;
 }
