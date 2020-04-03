@@ -139,8 +139,10 @@ def to_code(config):
         yield sm
         for conf in config[CONF_PACKET_MONITOR]:
             data = conf[CONF_DATA]
+            and_operator = conf[CONF_AND_OPERATOR]
+            inverted = conf[CONF_INVERTED]
             offset = conf[CONF_OFFSET]
-            cg.add(sm.add_filter([offset, data]))
+            cg.add(sm.add_filter([offset, and_operator, inverted, data]))
         cg.add(var.register_listener(sm))
 
 
