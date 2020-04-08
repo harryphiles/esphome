@@ -17,6 +17,9 @@ void RS485Component::dump_config() {
     ESP_LOGCONFIG(TAG, "  RX Receive Timeout: %d" , conf_rx_wait_ );
     ESP_LOGCONFIG(TAG, "  TX Transmission Timeout: %d", conf_tx_wait_ );
     ESP_LOGCONFIG(TAG, "  TX Retry Count: %d"     , conf_tx_retry_cnt_);
+    if(ctrl_pin_)
+        LOG_PIN("  Ctrl Pin: ", ctrl_pin_);
+
     if(prefix_.has_value())
         ESP_LOGCONFIG(TAG, "  Data prefix: %s"    , hexencode(&prefix_.value()[0], prefix_len_).c_str() );
     if(suffix_.has_value())
@@ -48,6 +51,11 @@ void RS485Component::setup() {
         this->hw_serial_ = &Serial2;
         this->hw_serial_->begin(conf_baud_, serialconfig);
     #endif
+
+    if(this->ctrl_pin_) {
+        this->ctrl_pin_->setup();
+        this->ctrl_pin_->digital_write(RX_ENABLE);
+    }
     
     if(checksum_) this->checksum_len_++;
     if(checksum2_) this->checksum_len_++;
@@ -215,6 +223,7 @@ void RS485Component::tx_proc() {
 
 void RS485Component::write_with_header(const std::vector<uint8_t> &data) {
     tx_start_time_ = millis();
+    if(ctrl_pin_) ctrl_pin_->digital_write(TX_ENABLE);
 
     // Header
     if(prefix_.has_value()) write_array(prefix_.value());
@@ -236,6 +245,7 @@ void RS485Component::write_with_header(const std::vector<uint8_t> &data) {
 
     // wait for send
     flush();
+    if(ctrl_pin_) ctrl_pin_->digital_write(RX_ENABLE);
 
     // for Ack wait
     tx_start_time_ = millis();

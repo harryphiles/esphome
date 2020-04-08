@@ -8,6 +8,8 @@
 #include "esphome/core/esphal.h"
 
 #define BUFFER_SIZE 128
+#define RX_ENABLE false
+#define TX_ENABLE true
 
 namespace esphome {
 namespace rs485 {
@@ -189,6 +191,9 @@ class RS485Component : public Component {
         /** TX Retry count */
         void set_tx_retry_cnt(num_t tx_retry_cnt) { conf_tx_retry_cnt_ = tx_retry_cnt; }
 
+        /** RX,TX Control pin */
+        void set_ctrl_pin(GPIOPin *pin) { ctrl_pin_ = pin; }
+
         /** Response Packet Pattern */
         void set_state_response(hex_t state_response) { state_response_ = state_response; }
 
@@ -244,6 +249,7 @@ class RS485Component : public Component {
         unsigned long tx_start_time_{0};
         bool tx_ack_wait_{false};
         num_t tx_retry_cnt_{0};
+        GPIOPin *ctrl_pin_{nullptr};
 
 };
 
