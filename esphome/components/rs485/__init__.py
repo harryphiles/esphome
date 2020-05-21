@@ -13,7 +13,7 @@ from .const import CONF_DATA_BITS, CONF_PARITY, CONF_STOP_BITS, CONF_PREFIX, CON
                    CONF_STATE_ON, CONF_STATE_OFF, CONF_COMMAND_ON, CONF_COMMAND_OFF, \
                    CONF_COMMAND_STATE, CONF_RX_WAIT, CONF_TX_WAIT, CONF_TX_RETRY_CNT, \
                    CONF_STATE_RESPONSE, CONF_LENGTH, CONF_PRECISION, CONF_AND_OPERATOR, \
-                   CONF_CHECKSUM2, CONF_CTRL_PIN
+                   CONF_CHECKSUM2, CONF_CTRL_PIN, CONF_TX_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,6 +72,7 @@ CONFIG_SCHEMA = cv.All(cv.Schema({
     cv.Optional(CONF_PARITY, default=0): cv.int_range(min=0, max=3), # 0:No parity, 2:Even, 3:Odd
     cv.Optional(CONF_STOP_BITS, default=1): cv.int_range(min=0, max=1),
     cv.Optional(CONF_RX_WAIT, default=10): cv.int_range(min=1, max=2000),
+    cv.Optional(CONF_TX_INTERVAL): cv.int_range(min=1, max=2000),
     cv.Optional(CONF_TX_WAIT): cv.int_range(min=1, max=2000),
     cv.Optional(CONF_TX_RETRY_CNT): cv.int_range(min=1, max=10),
     cv.Optional(CONF_CTRL_PIN): pins.gpio_output_pin_schema,
@@ -95,6 +96,8 @@ def to_code(config):
                            config[CONF_RX_WAIT])
     yield cg.register_component(var, config)
 
+    if CONF_TX_INTERVAL in config:
+        cg.add(var.set_tx_interval(config[CONF_TX_INTERVAL]))
     if CONF_TX_WAIT in config:
         cg.add(var.set_tx_wait(config[CONF_TX_WAIT]))
     if CONF_TX_RETRY_CNT in config:

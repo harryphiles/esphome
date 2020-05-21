@@ -185,6 +185,9 @@ class RS485Component : public Component {
             this->listeners_.push_back(listener);
         }
 
+        /** TX interval time */
+        void set_tx_interval(num_t tx_interval) { conf_tx_interval_ = tx_interval; }
+
         /** TX Ack wait time */
         void set_tx_wait(num_t tx_wait) { conf_tx_wait_ = tx_wait; }
 
@@ -206,6 +209,7 @@ class RS485Component : public Component {
         num_t conf_parity_;
         num_t conf_stop_;
         num_t conf_rx_wait_;
+        num_t conf_tx_interval_{50};
         num_t conf_tx_wait_{50};
         num_t conf_tx_retry_cnt_{3};
         optional<hex_t> state_response_{};
