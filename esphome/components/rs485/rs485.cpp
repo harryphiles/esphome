@@ -127,7 +127,7 @@ void RS485Component::loop() {
     }
 
     // queue Process
-    if(!response_wait_ && (!tx_queue_.empty() || !tx_queue_late_.empty() || (tx_current_cmd_ && !tx_ack_wait_)) && rx_bytesRead_ == 0) {
+    if(!response_wait_ && millis()-rx_lastTime_ > conf_tx_interval_ && (!tx_queue_.empty() || !tx_queue_late_.empty() || (tx_current_cmd_ && !tx_ack_wait_)) && rx_bytesRead_ == 0) {
         tx_proc();
         rx_lastTime_ = millis();
     }
@@ -156,7 +156,6 @@ void RS485Component::rx_proc() {
 }
 
 void RS485Component::tx_proc() {
-    //if(millis()-rx_lastTime_ < conf_rx_wait_*2) return;        
 
     // Command retry
     if(!tx_ack_wait_ && tx_current_cmd_) {
