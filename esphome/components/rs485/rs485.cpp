@@ -100,7 +100,7 @@ void RS485Component::loop() {
                     tx_current_device_->callback();
                     tx_current_device_ = nullptr;
                 }
-                ESP_LOGD(TAG, "Ack: %s, Gap Time: %dms", hexencode(rx_buffer_, rx_bytesRead_).c_str(), millis() - tx_start_time_);
+                ESP_LOGD(TAG, "Ack: %s, Gap Time: %lums", hexencode(rx_buffer_, rx_bytesRead_).c_str(), millis() - tx_start_time_);
                 rx_lastTime_ = millis();
                 return;
             }
@@ -115,7 +115,7 @@ void RS485Component::loop() {
             }
 
         #ifdef ESPHOME_LOG_HAS_VERY_VERBOSE
-            ESP_LOGVV(TAG, "Receive data-> %s, Gap Time: %dms", hexencode(&rx_buffer_[0], rx_bytesRead_).c_str(), millis() - rx_lastTime_);
+            ESP_LOGVV(TAG, "Receive data-> %s, Gap Time: %lums", hexencode(&rx_buffer_[0], rx_bytesRead_).c_str(), millis() - rx_lastTime_);
         #else
             #ifdef ESPHOME_LOG_HAS_VERBOSE
             if (!found) {
@@ -276,7 +276,7 @@ void RS485Component::write_next_late(const cmd_hex_t *cmd) {
 
 void RS485Component::flush() {
     this->hw_serial_->flush();
-    ESP_LOGD(TAG, "Flushing... (%dms)", millis() - tx_start_time_);
+    ESP_LOGD(TAG, "Flushing... (%lums)", millis() - tx_start_time_);
 }
 
 bool RS485Component::validate(const uint8_t *data, const num_t len) {
@@ -344,7 +344,7 @@ void RS485Device::update() {
 }
 
 void RS485Device::dump_rs485_device_config(const char *TAG) {
-    ESP_LOGCONFIG(TAG, "  Device: %s", hexencode(&device_.data[0], device_.data.size()).c_str(), device_.offset);
+    ESP_LOGCONFIG(TAG, "  Device: %s, offset: %d", hexencode(&device_.data[0], device_.data.size()).c_str(), device_.offset);
     if(sub_device_.has_value())
         ESP_LOGCONFIG(TAG, "  Sub device: %s, offset: %d", hexencode(&sub_device_.value().data[0], sub_device_.value().data.size()).c_str(), sub_device_.value().offset);
 
