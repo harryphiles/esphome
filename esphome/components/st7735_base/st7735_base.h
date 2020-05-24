@@ -59,8 +59,6 @@ class ST7735 : public PollingComponent, public display::DisplayBuffer {
     case ST7735_MODEL_128_160:
       this->_width = ST7735_TFTWIDTH_128;
       this->_height = ST7735_TFTHEIGHT_160;
-      this->_colstart = 0;
-      this->_rowstart = 1;
     }
   }
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
@@ -70,8 +68,8 @@ class ST7735 : public PollingComponent, public display::DisplayBuffer {
 
  protected:
   virtual void command(uint8_t value) = 0;
-  virtual void Sendcommand(uint8_t cmd, const uint8_t* dataBytes, uint8_t numDataBytes) = 0;
-  virtual void Senddata(const uint8_t* dataBytes, uint8_t numDataBytes) = 0;
+  virtual void sendCommand(uint8_t cmd, const uint8_t* dataBytes, uint8_t numDataBytes) = 0;
+  virtual void sendData(const uint8_t* dataBytes, uint8_t numDataBytes) = 0;
   virtual void data(uint8_t value) = 0;
   virtual void data16(uint16_t value, size_t count = 1) = 0;
   virtual void data32(uint32_t value) = 0;
@@ -89,8 +87,8 @@ class ST7735 : public PollingComponent, public display::DisplayBuffer {
   const char *model_str_();
 
   ST7735Model model_{ST7735_MODEL_128_128};
-  uint8_t _colstart = 2, //needs this or crashes
-          _rowstart = 3; //needs this or crashes
+  uint8_t _colstart{0}, //needs this or crashes
+          _rowstart{0}; //needs this or crashes
   int16_t _width = ST7735_TFTWIDTH_128,         ///< Display width as modified by current rotation
           _height = ST7735_TFTHEIGHT_128;        ///< Display height as modified by current rotation
   

@@ -39,12 +39,12 @@ void SPIST7735::command(uint8_t value) {
   this->disable();
 }
 
-void SPIST7735::Sendcommand(uint8_t cmd, const uint8_t* dataBytes, uint8_t numDataBytes) { 
+void SPIST7735::sendCommand(uint8_t cmd, const uint8_t* dataBytes, uint8_t numDataBytes) { 
   this->command(cmd);  //write command - SPI library 
-  this->Senddata(dataBytes,numDataBytes);
+  this->sendData(dataBytes,numDataBytes);
 }
 
-void SPIST7735::Senddata(const uint8_t* dataBytes, uint8_t numDataBytes) {
+void SPIST7735::sendData(const uint8_t* dataBytes, uint8_t numDataBytes) {
   this->dc_pin_->digital_write(true); //pull DC high to indicate data
   this->cs_->digital_write(false);
   this->enable();

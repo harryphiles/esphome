@@ -123,6 +123,16 @@ static const uint8_t PROGMEM
         ST77XX_RASET,   4,              //  2: Row addr set, 4 args, no delay:
         0x00, 0x01,                   //     XSTART = 0
         0x00, 0x9F+0x01 },            //     XEND = 159
+
+    Rcmd2red[] = {                    // 7735R init, part 2 (red tab only)
+      2,                              //  2 commands in list:
+      ST77XX_CASET,   4,              //  1: Column addr set, 4 args, no delay:
+        0x00, 0x00,                   //     XSTART = 0
+        0x00, 0x7F,                   //     XEND = 127
+      ST77XX_RASET,   4,              //  2: Row addr set, 4 args, no delay:
+        0x00, 0x00,                   //     XSTART = 0
+        0x00, 0x9F },                 //     XEND = 159
+
     Rcmd2green144[] = {               // 7735R init, part 2 (green 1.44 tab)
         2,                              //  2 commands in list:
         ST77XX_CASET,   4,              //  1: Column addr set, 4 args, no delay:
@@ -131,6 +141,7 @@ static const uint8_t PROGMEM
         ST77XX_RASET,   4,              //  2: Row addr set, 4 args, no delay:
         0x00, 0x00,                   //     XSTART = 0
         0x00, 0x7F },                 //     XEND = 127
+
     Rcmd3[] = {                       // 7735R init, part 3 (red or green tab)
         4,                              //  4 commands in list:
         ST7735_GMCTRP1, 16      ,       //  1: Gamma Adjustments (pos. polarity), 16 args + delay:
@@ -153,9 +164,21 @@ static const char *TAG = "st7735";
 void ST7735::setup() {
   this->init_internal_(this->get_buffer_length_());
 
-  this->displayInit(Rcmd1);
-  this->displayInit(Rcmd2green144);
-  this->displayInit(Rcmd3);
+  switch (this->model_) {
+  case ST7735_MODEL_128_128:
+    this->displayInit(Rcmd1);
+    this->displayInit(Rcmd2green144);
+    this->displayInit(Rcmd3);
+  case ST7735_MODEL_128_160:
+    this->displayInit(Rcmd1);
+    this->displayInit(Rcmd2red);
+    this->displayInit(Rcmd3);
+    uint8_t data = 0xC0;
+    this->sendCommand(ST77XX_MADCTL, &data, 1);
+  }
+
+
+
 
   //this->fill(display::COLOR_OFF);
 }
@@ -189,8 +212,10 @@ size_t ST7735::get_buffer_length_() {
 }
 
 void HOT ST7735::draw_absolute_pixel_internal(int x, int y, int color) {
-  this->setAddrWindow(x,y,0,0);
-  this->writeColor(color); //conert int to uint16
+  if ((x >= 0) && (x < _width) && (y >= 0) && (y < _height)) {
+    this->setAddrWindow(x,y,1,1);
+    this->writeColor(color); //conert int to uint16
+  }
 }
 
 void ST7735::fill(int color) {
@@ -251,7 +276,7 @@ void ST7735::displayInit(const uint8_t *addr) {
     numArgs  = pgm_read_byte(addr++);    // Number of args to follow
     ms       = numArgs & ST_CMD_DELAY;   // If hibit set, delay follows args
     numArgs &= ~ST_CMD_DELAY;            // Mask out delay bit
-    this->Sendcommand(cmd, addr, numArgs);
+    this->sendCommand(cmd, addr, numArgs);
     addr += numArgs;
 
     if(ms) {

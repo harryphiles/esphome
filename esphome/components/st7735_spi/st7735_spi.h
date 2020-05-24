@@ -22,8 +22,8 @@ class SPIST7735 : public st7735_base::ST7735,
   void data(uint8_t value) override;
   void data16(uint16_t value, size_t count = 1) override;
   void data32(uint32_t value) override;
-  void Sendcommand(uint8_t cmd, const uint8_t* dataBytes, uint8_t numDataBytes) override;
-  void Senddata(const uint8_t* dataBytes, uint8_t numDataBytes) override;
+  void sendCommand(uint8_t cmd, const uint8_t* dataBytes, uint8_t numDataBytes) override;
+  void sendData(const uint8_t* dataBytes, uint8_t numDataBytes) override;
   void write_display_data() override;
 
   GPIOPin *dc_pin_{nullptr};
