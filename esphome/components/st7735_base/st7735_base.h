@@ -5,6 +5,12 @@
 #include "esphome/components/display/display_buffer.h"
 
 namespace esphome {
+
+namespace display {
+  /** RGB888(24bit) to RGB565(16bit) INT */
+  extern const int RGB2INT(uint8_t r, uint8_t g, uint8_t b);
+}
+
 namespace st7735_base {
 
 #define ST7735_TFTWIDTH_128   128 // for 1.44 and mini
@@ -38,7 +44,6 @@ enum ST7735Model {
   ST7735_MODEL_128_128 = 0,
   ST7735_MODEL_128_160 = 1,
 };
-
 
 class ST7735 : public PollingComponent, public display::DisplayBuffer {
  public:

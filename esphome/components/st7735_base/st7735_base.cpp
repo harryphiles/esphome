@@ -3,6 +3,16 @@
 #include "esphome/core/helpers.h"
 
 namespace esphome {
+
+namespace display {
+  const int RGB2INT(uint8_t r, uint8_t g, uint8_t b) {
+    uint16_t rgb565 = 0x0000;
+    rgb565 = r & 0xF8 << 8;
+    rgb565 = rgb565 | (g & 0xFC << 3);
+    rgb565 = rgb565 | (b & 0xF8 >> 3);
+    return rgb565;
+  }
+}
 namespace st7735_base {
 
 #define ST_CMD_DELAY      0x80    // special signifier for command lists
@@ -176,11 +186,6 @@ void ST7735::setup() {
     uint8_t data = 0xC0;
     this->sendCommand(ST77XX_MADCTL, &data, 1);
   }
-
-
-
-
-  //this->fill(display::COLOR_OFF);
 }
 
 void ST7735::display() {
