@@ -288,7 +288,7 @@ void WiFiComponent::print_connect_params_() {
   char signal_bars[50];
   int8_t rssi = WiFi.RSSI();
   print_signal_bars(rssi, signal_bars);
-  ESP_LOGCONFIG(TAG, "  Signal strength: %d dB", rssi);
+  ESP_LOGCONFIG(TAG, "  Signal strength: %d dB %s", rssi, signal_bars);
   if (this->selected_ap_.get_bssid().has_value()) {
     ESP_LOGV(TAG, "  Priority: %.1f", this->get_sta_priority(*this->selected_ap_.get_bssid()));
   }
