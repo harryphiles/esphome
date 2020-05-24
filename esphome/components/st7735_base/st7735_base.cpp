@@ -7,9 +7,9 @@ namespace esphome {
 namespace display {
   const int RGB2INT(uint8_t r, uint8_t g, uint8_t b) {
     uint16_t rgb565 = 0x0000;
-    rgb565 = r & 0xF8 << 8;
-    rgb565 = rgb565 | (g & 0xFC << 3);
-    rgb565 = rgb565 | (b & 0xF8 >> 3);
+    rgb565 = (r & 0xF8) << 8;
+    rgb565 = rgb565 | ((g & 0xFC) << 3);
+    rgb565 = rgb565 | ((b & 0xF8) >> 3);
     return rgb565;
   }
 }
