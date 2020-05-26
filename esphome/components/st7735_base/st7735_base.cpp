@@ -189,12 +189,12 @@ void ST7735::setup() {
 }
 
 void ST7735::display() {
-  this->command(ST77XX_CASET); /* set column address */
-  this->command(_colstart);               /* set column start address */
-  this->command(_width);               /* set column end address */
-  this->command(ST77XX_RASET); /* set row address */
-  this->command(_rowstart);               /* set row start address */
-  this->command(_height);               /* set row end address */
+  // this->command(ST77XX_CASET); /* set column address */
+  // this->command(_colstart);               /* set column start address */
+  // this->command(_width);               /* set column end address */
+  // this->command(ST77XX_RASET); /* set row address */
+  // this->command(_rowstart);               /* set row start address */
+  // this->command(_height);               /* set row end address */
 
   this->write_display_data();
 }

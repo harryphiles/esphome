@@ -42,7 +42,7 @@ namespace st7735_base {
 
 enum ST7735Model {
   ST7735_MODEL_128_128 = 0,
-  ST7735_MODEL_128_160 = 1,
+  ST7735_MODEL_128_160,
 };
 
 class ST7735 : public PollingComponent, public display::DisplayBuffer {

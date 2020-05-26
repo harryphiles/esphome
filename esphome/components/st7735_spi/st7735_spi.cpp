@@ -53,7 +53,6 @@ void SPIST7735::sendData(const uint8_t* dataBytes, uint8_t numDataBytes) {
   }
   this->cs_->digital_write(true);
   this->disable();
-
 }
 
 void SPIST7735::data(uint8_t value) {
