@@ -48,27 +48,12 @@ enum ST7735Model {
 class ST7735 : public PollingComponent, public display::DisplayBuffer {
  public:
   void setup() override;
+  void update() override;
+  float get_setup_priority() const override { return setup_priority::PROCESSOR; }
 
   void display();
-
-  void update() override;
-
-  void set_model(ST7735Model model) {
-    this->model_ = model;
-    switch (this->model_) {
-    case ST7735_MODEL_128_128:
-      this->_width = ST7735_TFTWIDTH_128;
-      this->_height = ST7735_TFTHEIGHT_128;
-      this->_colstart = 2;
-      this->_rowstart = 3;
-    case ST7735_MODEL_128_160:
-      this->_width = ST7735_TFTWIDTH_128;
-      this->_height = ST7735_TFTHEIGHT_160;
-    }
-  }
+  void set_model(ST7735Model model) { this->model_ = model; }
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
-
-  float get_setup_priority() const override { return setup_priority::PROCESSOR; }
   void fill(int color) override;
 
  protected:
@@ -84,7 +69,6 @@ class ST7735 : public PollingComponent, public display::DisplayBuffer {
   void displayInit(const uint8_t *addr);
   void setAddrWindow(uint16_t x, uint16_t y, uint16_t w,  uint16_t h);
   void draw_absolute_pixel_internal(int x, int y, int color) override;
-  void writeColor(uint16_t color, size_t count = 1u);
   
   int get_height_internal() override;
   int get_width_internal() override;
@@ -94,8 +78,6 @@ class ST7735 : public PollingComponent, public display::DisplayBuffer {
   ST7735Model model_{ST7735_MODEL_128_128};
   uint8_t _colstart{0}, //needs this or crashes
           _rowstart{0}; //needs this or crashes
-  int16_t _width = ST7735_TFTWIDTH_128,         ///< Display width as modified by current rotation
-          _height = ST7735_TFTHEIGHT_128;        ///< Display height as modified by current rotation
   
   GPIOPin *reset_pin_{nullptr};
 };

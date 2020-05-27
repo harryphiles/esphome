@@ -179,6 +179,8 @@ void ST7735::setup() {
     this->displayInit(Rcmd1);
     this->displayInit(Rcmd2green144);
     this->displayInit(Rcmd3);
+    this->_colstart = 2;
+    this->_rowstart = 3;
   case ST7735_MODEL_128_160:
     this->displayInit(Rcmd1);
     this->displayInit(Rcmd2red);
@@ -189,13 +191,7 @@ void ST7735::setup() {
 }
 
 void ST7735::display() {
-  // this->command(ST77XX_CASET); /* set column address */
-  // this->command(_colstart);               /* set column start address */
-  // this->command(_width);               /* set column end address */
-  // this->command(ST77XX_RASET); /* set row address */
-  // this->command(_rowstart);               /* set row start address */
-  // this->command(_height);               /* set row end address */
-
+  this->setAddrWindow(0, 0, this->get_width_internal(), this->get_height_internal());
   this->write_display_data();
 }
 
@@ -205,27 +201,44 @@ void ST7735::update() {
 }
 
 int ST7735::get_height_internal() {
-  return this->_height;
-}
-
-int ST7735::get_width_internal() {
-  return this->_width;
-}
-
-size_t ST7735::get_buffer_length_() {
-  return size_t(this->get_width_internal()) * size_t(this->get_height_internal()) / 8u;
-}
-
-void HOT ST7735::draw_absolute_pixel_internal(int x, int y, int color) {
-  if ((x >= 0) && (x < _width) && (y >= 0) && (y < _height)) {
-    this->setAddrWindow(x,y,1,1);
-    this->writeColor(color); //conert int to uint16
+  switch (this->model_) {
+    case ST7735_MODEL_128_128:
+      return ST7735_TFTHEIGHT_128;
+    case ST7735_MODEL_128_160:
+      return ST7735_TFTHEIGHT_160;
+    default:
+      return 0;
   }
 }
 
+int ST7735::get_width_internal() {
+  switch (this->model_) {
+    case ST7735_MODEL_128_128:
+      return ST7735_TFTWIDTH_128;
+    case ST7735_MODEL_128_160:
+      return ST7735_TFTWIDTH_128;
+    default:
+      return 0;
+  }
+}
+
+size_t ST7735::get_buffer_length_() {
+  return size_t(this->get_width_internal()) * size_t(this->get_height_internal()) * 2u;
+}
+
+void HOT ST7735::draw_absolute_pixel_internal(int x, int y, int color) {
+  if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0)
+    return;
+
+  uint16_t pixel = color == display::COLOR_ON ? ST7735_WHITE : color;
+  uint16_t pos = x + (y * 2) * this->get_width_internal();
+  this->buffer_[pos] = pixel;
+}
+
 void ST7735::fill(int color) {
-  this->setAddrWindow(0,0,_width,_height);
-  this->writeColor(color, _width*_height);
+  uint16_t pixel = color == display::COLOR_OFF ? ST7735_BLACK : ST7735_WHITE;
+  for(size_t i=0; i<this->get_buffer_length_(); i+=2)
+    this->buffer_[i] = pixel;
 }
 
 void ST7735::init_reset_() {
@@ -265,10 +278,6 @@ void ST7735::setAddrWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h) {
   this->data32(ya);
 
   this->command(ST77XX_RAMWR); // write to RAM
-}
-
-void ST7735::writeColor(uint16_t color, size_t count){
-  this->data16(color == display::COLOR_ON ? ST7735_WHITE : color, count);
 }
 
 void ST7735::displayInit(const uint8_t *addr) {
