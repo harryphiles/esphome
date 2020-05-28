@@ -231,14 +231,17 @@ void HOT ST7735::draw_absolute_pixel_internal(int x, int y, int color) {
     return;
 
   uint16_t pixel = color == display::COLOR_ON ? ST7735_WHITE : color;
-  uint16_t pos = x + (y * 2) * this->get_width_internal();
-  this->buffer_[pos] = pixel;
+  uint16_t pos = (x * 2) + (y * this->get_width_internal() * 2);
+  this->buffer_[pos] = pixel >> 8;
+  this->buffer_[pos+1] = pixel & 0x00FF;
 }
 
 void ST7735::fill(int color) {
-  uint16_t pixel = color == display::COLOR_OFF ? ST7735_BLACK : ST7735_WHITE;
-  for(size_t i=0; i<this->get_buffer_length_(); i+=2)
-    this->buffer_[i] = pixel;
+  uint16_t pixel = color == display::COLOR_ON ? ST7735_WHITE : color;
+  for(size_t i=0; i<this->get_buffer_length_(); i+=2) {
+    this->buffer_[i] = pixel >> 8;
+    this->buffer_[i+1] = pixel & 0x00FF;
+  }
 }
 
 void ST7735::init_reset_() {
