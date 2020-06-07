@@ -17,6 +17,22 @@ void PMSX003Component::set_formaldehyde_sensor(sensor::Sensor *formaldehyde_sens
   formaldehyde_sensor_ = formaldehyde_sensor;
 }
 
+void PMSX003Component::setup() {
+  if (this->type_ == PMSX003_TYPE_X003) {
+    // Change mode to passive mode
+	  write_command(0xe1, 0x0000);
+  }
+}
+
+void PMSX003Component::update() {
+  if (this->type_ == PMSX003_TYPE_X003) {
+    flush();
+    
+    // Request Data
+    write_command(0xe2, 0x0000);
+  }
+}
+
 void PMSX003Component::loop() {
   const uint32_t now = millis();
   if (now - this->last_transmission_ >= 500) {
@@ -170,6 +186,22 @@ void PMSX003Component::dump_config() {
   LOG_SENSOR("  ", "Humidity", this->humidity_sensor_);
   LOG_SENSOR("  ", "Formaldehyde", this->formaldehyde_sensor_);
   this->check_uart_settings(9600);
+}
+
+void PMSX003Component::write_command(uint8_t cmd, uint16_t data) {
+	uint8_t packet[5] = {0x42, 0x4d, 0x00, 0x00, 0x00};
+	uint16_t parity = 0;
+	
+	packet[2] = cmd;
+	packet[3] = (uint8_t)((data>>8) & 0xff);
+	packet[4] = (uint8_t)(data & 0xff);
+	  
+	for (int i=0; i<5; i++) {
+		parity += packet[i];
+        write(packet[i]);
+    }
+	write((uint8_t)((parity>>8) & 0xff));
+	write((uint8_t)(parity & 0xff));
 }
 
 }  // namespace pmsx003

@@ -56,7 +56,7 @@ CONFIG_SCHEMA = cv.Schema({
         sensor.sensor_schema(UNIT_PERCENT, ICON_WATER_PERCENT, 1),
     cv.Optional(CONF_FORMALDEHYDE):
         sensor.sensor_schema(UNIT_MICROGRAMS_PER_CUBIC_METER, ICON_CHEMICAL_WEAPON, 0),
-}).extend(cv.COMPONENT_SCHEMA).extend(uart.UART_DEVICE_SCHEMA)
+}).extend(cv.polling_component_schema('60s')).extend(uart.UART_DEVICE_SCHEMA)
 
 
 def to_code(config):
