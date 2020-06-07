@@ -13,11 +13,14 @@ enum PMSX003Type {
   PMSX003_TYPE_5003ST,
 };
 
-class PMSX003Component : public uart::UARTDevice, public Component {
+class PMSX003Component : public PollingComponent, public uart::UARTDevice {
  public:
   PMSX003Component() = default;
   void loop() override;
   float get_setup_priority() const override;
+  
+  void setup() override;
+  void update() override;
   void dump_config() override;
 
   void set_type(PMSX003Type type) { type_ = type; }
@@ -32,6 +35,7 @@ class PMSX003Component : public uart::UARTDevice, public Component {
   optional<bool> check_byte_();
   void parse_data_();
   uint16_t get_16_bit_uint_(uint8_t start_index);
+  void write_command(uint8_t cmd, uint16_t data);
 
   uint8_t data_[64];
   uint8_t data_index_{0};
