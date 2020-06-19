@@ -63,9 +63,9 @@ enum class TextAlign {
 };
 
 /// Turn the pixel OFF.
-extern const uint8_t COLOR_OFF;
+extern const int COLOR_OFF;
 /// Turn the pixel ON.
-extern const uint8_t COLOR_ON;
+extern const int COLOR_ON;
 
 enum DisplayRotation {
   DISPLAY_ROTATION_0_DEGREES = 0,
