@@ -6,11 +6,6 @@
 
 namespace esphome {
 
-namespace display {
-  /** RGB888(24bit) to RGB565(16bit) INT */
-  extern const int RGB2INT(uint8_t r, uint8_t g, uint8_t b);
-}
-
 namespace st7735_base {
 
 #define ST7735_TFTWIDTH_128   128 // for 1.44 and mini
@@ -54,7 +49,7 @@ class ST7735 : public PollingComponent, public display::DisplayBuffer {
   void display();
   void set_model(ST7735Model model) { this->model_ = model; }
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
-  void fill(int color) override;
+  void fill(Color color) override;
 
  protected:
   virtual void command(uint8_t value) = 0;
@@ -68,7 +63,7 @@ class ST7735 : public PollingComponent, public display::DisplayBuffer {
   void init_reset_();
   void displayInit(const uint8_t *addr);
   void setAddrWindow(uint16_t x, uint16_t y, uint16_t w,  uint16_t h);
-  void draw_absolute_pixel_internal(int x, int y, int color) override;
+  void draw_absolute_pixel_internal(int x, int y, Color color) override;
   
   int get_height_internal() override;
   int get_width_internal() override;

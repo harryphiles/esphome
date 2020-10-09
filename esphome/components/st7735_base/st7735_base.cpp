@@ -4,15 +4,6 @@
 
 namespace esphome {
 
-namespace display {
-  const int RGB2INT(uint8_t r, uint8_t g, uint8_t b) {
-    uint16_t rgb565 = 0x0000;
-    rgb565 = (r & 0xF8) << 8;
-    rgb565 = rgb565 | ((g & 0xFC) << 3);
-    rgb565 = rgb565 | ((b & 0xF8) >> 3);
-    return rgb565;
-  }
-}
 namespace st7735_base {
 
 #define ST_CMD_DELAY      0x80    // special signifier for command lists
@@ -226,21 +217,21 @@ size_t ST7735::get_buffer_length_() {
   return size_t(this->get_width_internal()) * size_t(this->get_height_internal()) * 2u;
 }
 
-void HOT ST7735::draw_absolute_pixel_internal(int x, int y, int color) {
+void HOT ST7735::draw_absolute_pixel_internal(int x, int y, Color color) {
   if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0)
     return;
 
-  uint16_t pixel = color == display::COLOR_ON ? ST7735_WHITE : color;
+  uint32_t color565 = color.to_rgb_565();
   uint16_t pos = (x * 2) + (y * this->get_width_internal() * 2);
-  this->buffer_[pos] = pixel >> 8;
-  this->buffer_[pos+1] = pixel & 0x00FF;
+  this->buffer_[pos] = (color565 >> 8) & 0xff;
+  this->buffer_[pos+1] = color565 & 0xff;
 }
 
-void ST7735::fill(int color) {
-  uint16_t pixel = color == display::COLOR_ON ? ST7735_WHITE : color;
+void ST7735::fill(Color color) {
+  uint32_t color565 = color.to_rgb_565();
   for(size_t i=0; i<this->get_buffer_length_(); i+=2) {
-    this->buffer_[i] = pixel >> 8;
-    this->buffer_[i+1] = pixel & 0x00FF;
+    this->buffer_[i] = (color565 >> 8) & 0xff;
+    this->buffer_[i+1] = color565 & 0xff;
   }
 }
 

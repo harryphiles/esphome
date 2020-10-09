@@ -13,7 +13,7 @@ SPIST7735 = st7735_spi.class_('SPIST7735', st7735_base.ST7735, spi.SPIDevice)
 CONFIG_SCHEMA = cv.All(st7735_base.ST7735_SCHEMA.extend({
     cv.GenerateID(): cv.declare_id(SPIST7735),
     cv.Required(CONF_DC_PIN): pins.gpio_output_pin_schema,
-}).extend(cv.COMPONENT_SCHEMA).extend(spi.SPI_DEVICE_SCHEMA),
+}).extend(cv.COMPONENT_SCHEMA).extend(spi.spi_device_schema()),
                        cv.has_at_most_one_key(CONF_PAGES, CONF_LAMBDA))
 
 
