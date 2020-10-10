@@ -2,7 +2,6 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import switch, rs485
 from esphome.const import CONF_ID, CONF_INVERTED
-from esphome.py_compat import binary_type, char_to_byte
 from .. import rs485_ns
 
 DEPENDENCIES = ['rs485']

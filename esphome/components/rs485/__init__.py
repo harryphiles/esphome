@@ -6,7 +6,6 @@ from esphome.const import CONF_ID, CONF_BAUD_RATE, CONF_OFFSET, CONF_DATA, \
                           CONF_UPDATE_INTERVAL, CONF_DEVICE, CONF_INVERTED
 from esphome.core import CORE, coroutine
 from esphome.util import SimpleRegistry
-from esphome.py_compat import text_type, binary_type, char_to_byte
 from .const import CONF_DATA_BITS, CONF_PARITY, CONF_STOP_BITS, CONF_PREFIX, CONF_SUFFIX, \
                    CONF_CHECKSUM, CONF_CHECKSUM_LAMBDA, CONF_ACK, CONF_RS485_ID, \
                    CONF_PACKET_MONITOR, CONF_PACKET_MONITOR_ID, CONF_SUB_DEVICE, \
