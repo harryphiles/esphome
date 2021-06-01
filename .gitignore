@@ -82,7 +82,8 @@ venv.bak/
 .pioenvs
 .piolibdeps
 .pio
-.vscode
+.vscode/
+!.vscode/tasks.json
 CMakeListsPrivate.txt
 CMakeLists.txt
 
@@ -120,4 +121,4 @@ config/
 tests/build/
 tests/.esphome/
 /.temp-clang-tidy.cpp
-/.idea/
+.pio/
