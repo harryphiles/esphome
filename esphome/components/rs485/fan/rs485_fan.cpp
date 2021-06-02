@@ -40,7 +40,8 @@ void RS485Fan::dump_config() {
 void RS485Fan::setup() {
   bool oscillation = false;
   this->support_speed_ = command_speed_low_.data.size() > 0 || command_speed_medium_.data.size() > 0 || command_speed_high_.data.size() > 0;
-  auto traits = fan::FanTraits(oscillation, this->support_speed_, false);
+  int speed_count = (command_speed_low_.data.size() > 0 ? 1:0) + (command_speed_medium_.data.size() > 0 ? 1:0) + (command_speed_high_.data.size() > 0 ? 1:0);
+  auto traits = fan::FanTraits(oscillation, this->support_speed_, false, speed_count);
   this->fan_->set_traits(traits);
   this->fan_->add_on_state_callback([this]() { this->perform(); });
 }

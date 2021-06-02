@@ -31,7 +31,7 @@ class RS485Fan : public RS485Device {
 
   protected:
     fan::FanState *fan_;
-    fan::FanSpeed speed_{fan::FAN_SPEED_HIGH};
+    int speed_{fan::FAN_SPEED_HIGH};
     bool support_speed_{false};
     bool state_{false};
 
