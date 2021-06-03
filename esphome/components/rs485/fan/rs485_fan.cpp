@@ -56,21 +56,21 @@ void RS485Fan::perform() {
   else if (this->support_speed_ && this->state_ && this->speed_ != this->fan_->speed) {
     this->speed_ = this->fan_->speed;
     switch (this->speed_) {
-      case fan::FAN_SPEED_LOW:
+      case 1:
         if(command_speed_low_.data.size() == 0) {
           ESP_LOGW(TAG, "'%s' Not support speed: LOW", device_name_->c_str());
           break;
         }
         write_with_header(&command_speed_low_);
         break;
-      case fan::FAN_SPEED_MEDIUM:
+      case 2:
         if(command_speed_medium_.data.size() == 0) {
           ESP_LOGW(TAG, "'%s' Not support speed: MEDIUM", device_name_->c_str());
           break;
         }
         write_with_header(&command_speed_medium_);
         break;
-      case fan::FAN_SPEED_HIGH:
+      case 3:
         if(command_speed_high_.data.size() == 0) {
           ESP_LOGW(TAG, "'%s' Not support speed: HIGH", device_name_->c_str());
           break;
