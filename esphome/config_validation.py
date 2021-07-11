@@ -46,7 +46,13 @@ from esphome.core import (
     TimePeriodMinutes,
 )
 from esphome.helpers import list_starts_with, add_class_to_obj
-from esphome.jsonschema import jschema_composite, jschema_registry, jschema_typed
+from esphome.jsonschema import (
+    jschema_composite,
+    jschema_extractor,
+    jschema_registry,
+    jschema_typed,
+)
+
 from esphome.voluptuous_schema import _Schema
 from esphome.yaml_util import make_data_base
 
@@ -69,6 +75,9 @@ Inclusive = vol.Inclusive
 ALLOW_EXTRA = vol.ALLOW_EXTRA
 UNDEFINED = vol.UNDEFINED
 RequiredFieldInvalid = vol.RequiredFieldInvalid
+# this sentinel object can be placed in an 'Invalid' path to say
+# the rest of the error path is relative to the root config path
+ROOT_CONFIG_PATH = object()
 
 RESERVED_IDS = [
     # C++ keywords http://en.cppreference.com/w/cpp/keyword
@@ -212,8 +221,8 @@ class Required(vol.Required):
     - *not* the `config.get(CONF_<KEY>)` syntax.
     """
 
-    def __init__(self, key):
-        super().__init__(key)
+    def __init__(self, key, msg=None):
+        super().__init__(key, msg=msg)
 
 
 def check_not_templatable(value):
@@ -1067,6 +1076,7 @@ def invalid(message):
 
 
 def valid(value):
+    """A validator that is always valid and returns the value as-is."""
     return value
 
 
@@ -1121,7 +1131,12 @@ def one_of(*values, **kwargs):
     if kwargs:
         raise ValueError
 
+    @jschema_extractor("one_of")
     def validator(value):
+        # pylint: disable=comparison-with-callable
+        if value == jschema_extractor:
+            return values
+
         if string_:
             value = string(value)
             value = value.replace(" ", space)
@@ -1161,7 +1176,12 @@ def enum(mapping, **kwargs):
     assert isinstance(mapping, dict)
     one_of_validator = one_of(*mapping, **kwargs)
 
+    @jschema_extractor("enum")
     def validator(value):
+        # pylint: disable=comparison-with-callable
+        if value == jschema_extractor:
+            return mapping
+
         value = one_of_validator(value)
         value = add_class_to_obj(value, core.EnumValue)
         value.enum_value = mapping[value]
@@ -1347,15 +1367,17 @@ def extract_keys(schema):
 def typed_schema(schemas, **kwargs):
     """Create a schema that has a key to distinguish between schemas"""
     key = kwargs.pop("key", CONF_TYPE)
+    default_schema_option = kwargs.pop("default_type", None)
     key_validator = one_of(*schemas, **kwargs)
 
     def validator(value):
         if not isinstance(value, dict):
             raise Invalid("Value must be dict")
-        if key not in value:
-            raise Invalid("type not specified!")
         value = value.copy()
-        key_v = key_validator(value.pop(key))
+        schema_option = value.pop(key, default_schema_option)
+        if schema_option is None:
+            raise Invalid(key + " not specified!")
+        key_v = key_validator(schema_option)
         value = schemas[key_v](value)
         value[key] = key_v
         return value
