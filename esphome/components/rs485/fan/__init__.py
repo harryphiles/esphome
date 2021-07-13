@@ -24,31 +24,31 @@ CONFIG_SCHEMA = fan.FAN_SCHEMA.extend({
 }).extend(rs485.RS485_DEVICE_SCHEMA).extend(cv.COMPONENT_SCHEMA)
 
 
-def to_code(config):
+async def to_code(config):
     interval = config[CONF_UPDATE_INTERVAL]
     del config[CONF_UPDATE_INTERVAL]
-    fan_state = yield fan.create_fan_state(config)
+    fan_state = await fan.create_fan_state(config)
 
     config[CONF_UPDATE_INTERVAL] = interval
     var = cg.new_Pvariable(config[CONF_OUTPUT_ID], fan_state)
-    yield cg.register_component(var, config)
+    await cg.register_component(var, config)
     speeds = config[CONF_SPEED]
     if CONF_LOW in speeds:
         speed = speeds[CONF_LOW]
-        state = yield state_hex_expression(speed[CONF_STATE])
-        command = yield command_hex_expression(speed[CONF_COMMAND])
+        state = await state_hex_expression(speed[CONF_STATE])
+        command = await command_hex_expression(speed[CONF_COMMAND])
         cg.add(var.set_speed_low(state, command))
 
     if CONF_MEDIUM in speeds:
         speed = speeds[CONF_MEDIUM]
-        state = yield state_hex_expression(speed[CONF_STATE])
-        command = yield command_hex_expression(speed[CONF_COMMAND])
+        state = await state_hex_expression(speed[CONF_STATE])
+        command = await command_hex_expression(speed[CONF_COMMAND])
         cg.add(var.set_speed_medium(state, command))
 
     if CONF_HIGH in speeds:
         speed = speeds[CONF_HIGH]
-        state = yield state_hex_expression(speed[CONF_STATE])
-        command = yield command_hex_expression(speed[CONF_COMMAND])
+        state = await state_hex_expression(speed[CONF_STATE])
+        command = await command_hex_expression(speed[CONF_COMMAND])
         cg.add(var.set_speed_high(state, command))
 
-    yield rs485.register_rs485_device(var, config)
+    await rs485.register_rs485_device(var, config)

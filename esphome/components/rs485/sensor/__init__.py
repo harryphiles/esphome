@@ -21,20 +21,20 @@ CONFIG_SCHEMA = cv.All(sensor.sensor_schema(UNIT_EMPTY, ICON_EMPTY, 1).extend({
     cv.Optional(CONF_DATA): STATE_NUM_SCHEMA
 }).extend(cv.polling_component_schema('60s')), cv.has_exactly_one_key(CONF_LAMBDA, CONF_DATA))
 
-def to_code(config):
+async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    yield cg.register_component(var, config)
-    yield rs485.register_rs485_device(var, config)
+    await cg.register_component(var, config)
+    await rs485.register_rs485_device(var, config)
 
     if CONF_LAMBDA in config:
-        template_ = yield cg.process_lambda(config[CONF_LAMBDA], [(uint8_ptr_const, 'data'),
+        template_ = await cg.process_lambda(config[CONF_LAMBDA], [(uint8_ptr_const, 'data'),
                                                                   (num_t_const, 'len')],
                                             return_type=cg.optional.template(float))
         cg.add(var.set_template(template_))
     if CONF_DATA in config:
         data = config[CONF_DATA]
-        data_ = yield data[CONF_OFFSET], data[CONF_LENGTH], data[CONF_PRECISION]
+        data_ = await data[CONF_OFFSET], data[CONF_LENGTH], data[CONF_PRECISION]
         cg.add(var.set_state_num(data_))
         config[CONF_ACCURACY_DECIMALS] = data[CONF_PRECISION]
 
-    yield sensor.register_sensor(var, config)
+    await sensor.register_sensor(var, config)

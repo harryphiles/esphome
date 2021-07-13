@@ -12,15 +12,15 @@ CONFIG_SCHEMA = light.BINARY_LIGHT_SCHEMA.extend({
 }).extend(rs485.RS485_DEVICE_SCHEMA).extend(cv.COMPONENT_SCHEMA)
 
 
-def to_code(config):
+async def to_code(config):
     var = cg.new_Pvariable(config[CONF_OUTPUT_ID])
     light_var = cg.new_Pvariable(config[CONF_ID], config[CONF_NAME], var)
     cg.add(var.set_light(light_var))
 
     cg.add(cg.App.register_light(light_var))
-    yield cg.register_component(var, config)
+    await cg.register_component(var, config)
     del config[CONF_UPDATE_INTERVAL]
-    yield cg.register_component(light_var, config)
-    yield light.setup_light_core_(light_var, var, config)
+    await cg.register_component(light_var, config)
+    await light.setup_light_core_(light_var, var, config)
 
-    yield rs485.register_rs485_device(var, config)
+    await rs485.register_rs485_device(var, config)

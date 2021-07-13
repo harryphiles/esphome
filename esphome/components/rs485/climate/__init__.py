@@ -40,67 +40,67 @@ CONFIG_SCHEMA = cv.All(climate.CLIMATE_SCHEMA.extend({
 )
 
 
-def to_code(config):
+async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    yield cg.register_component(var, config)
-    yield climate.register_climate(var, config)
-    yield rs485.register_rs485_device(var, config)
+    await cg.register_component(var, config)
+    await climate.register_climate(var, config)
+    await rs485.register_rs485_device(var, config)
 
-    templ = yield cg.templatable(config[CONF_COMMAND_TEMPERATURE], [(cg.float_.operator('const'), 'x')], cmd_hex_t)
+    templ = await cg.templatable(config[CONF_COMMAND_TEMPERATURE], [(cg.float_.operator('const'), 'x')], cmd_hex_t)
     cg.add(var.set_command_temperature(templ))
 
     state = config[CONF_STATE_TARGET]
     if cg.is_template(state):
-        templ = yield cg.templatable(state, [(uint8_ptr_const, 'data'), (num_t_const, 'len')], cg.float_)
+        templ = await cg.templatable(state, [(uint8_ptr_const, 'data'), (num_t_const, 'len')], cg.float_)
         cg.add(var.set_state_target(templ))
     else:
-        args = yield state[CONF_OFFSET], state[CONF_LENGTH], state[CONF_PRECISION]
+        args = await state[CONF_OFFSET], state[CONF_LENGTH], state[CONF_PRECISION]
         cg.add(var.set_state_target(args))
     
     if CONF_SENSOR in config:
-        sens = yield cg.get_variable(config[CONF_SENSOR])
+        sens = await cg.get_variable(config[CONF_SENSOR])
         cg.add(var.set_sensor(sens))
     
     if CONF_STATE_CURRENT in config:
         state = config[CONF_STATE_CURRENT]
         if cg.is_template(state):
-            templ = yield cg.templatable(state, [(uint8_ptr_const, 'data'), (num_t_const, 'len')], cg.float_)
+            templ = await cg.templatable(state, [(uint8_ptr_const, 'data'), (num_t_const, 'len')], cg.float_)
             cg.add(var.set_state_current(templ))
         else:
-            args = yield state[CONF_OFFSET], state[CONF_LENGTH], state[CONF_PRECISION]
+            args = await state[CONF_OFFSET], state[CONF_LENGTH], state[CONF_PRECISION]
             cg.add(var.set_state_current(args))
 
 
     if CONF_STATE_AUTO in config:
-        args = yield state_hex_expression(config[CONF_STATE_AUTO])
+        args = await state_hex_expression(config[CONF_STATE_AUTO])
         cg.add(var.set_state_auto(args))
     
     if CONF_STATE_HEAT in config:
-        args = yield state_hex_expression(config[CONF_STATE_HEAT])
+        args = await state_hex_expression(config[CONF_STATE_HEAT])
         cg.add(var.set_state_heat(args))
 
     if CONF_STATE_COOL in config:
-        args = yield state_hex_expression(config[CONF_STATE_COOL])
+        args = await state_hex_expression(config[CONF_STATE_COOL])
         cg.add(var.set_state_cool(args))
 
     if CONF_STATE_AWAY in config:
-        args = yield state_hex_expression(config[CONF_STATE_AWAY])
+        args = await state_hex_expression(config[CONF_STATE_AWAY])
         cg.add(var.set_state_away(args))
 
 
     if CONF_COMMAND_AUTO in config:
-        args = yield command_hex_expression(config[CONF_COMMAND_AUTO])
+        args = await command_hex_expression(config[CONF_COMMAND_AUTO])
         cg.add(var.set_command_auto(args))
 
     if CONF_COMMAND_HEAT in config:
-        args = yield command_hex_expression(config[CONF_COMMAND_HEAT])
+        args = await command_hex_expression(config[CONF_COMMAND_HEAT])
         cg.add(var.set_command_heat(args))
 
     if CONF_COMMAND_COOL in config:
-        args = yield command_hex_expression(config[CONF_COMMAND_COOL])
+        args = await command_hex_expression(config[CONF_COMMAND_COOL])
         cg.add(var.set_command_cool(args))
 
     if CONF_COMMAND_AWAY in config:
-        args = yield command_hex_expression(config[CONF_COMMAND_AWAY])
+        args = await command_hex_expression(config[CONF_COMMAND_AWAY])
         cg.add(var.set_command_away(args))
 

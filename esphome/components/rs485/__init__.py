@@ -85,7 +85,7 @@ CONFIG_SCHEMA = cv.All(cv.Schema({
 }).extend(cv.COMPONENT_SCHEMA))
 
 
-def to_code(config):
+async def to_code(config):
     cg.add_global(rs485_ns.using)
     var = cg.new_Pvariable(config[CONF_ID],
                            config[CONF_BAUD_RATE],
@@ -93,7 +93,7 @@ def to_code(config):
                            config[CONF_PARITY],
                            config[CONF_STOP_BITS],
                            config[CONF_RX_WAIT])
-    yield cg.register_component(var, config)
+    await cg.register_component(var, config)
 
     if CONF_TX_INTERVAL in config:
         cg.add(var.set_tx_interval(config[CONF_TX_INTERVAL]))
@@ -103,7 +103,7 @@ def to_code(config):
         cg.add(var.set_tx_retry_cnt(config[CONF_TX_RETRY_CNT]))
 
     if CONF_CTRL_PIN in config:
-        pin = yield cg.gpio_pin_expression(config[CONF_CTRL_PIN])
+        pin = await cg.gpio_pin_expression(config[CONF_CTRL_PIN])
         cg.add(var.set_ctrl_pin(pin))
 
     if CONF_PREFIX in config:
@@ -113,14 +113,14 @@ def to_code(config):
     
     if CONF_CHECKSUM_LAMBDA in config:
         _LOGGER.warning(CONF_CHECKSUM_LAMBDA + " is deprecated and will be removed in a future version.");
-        template_ = yield cg.process_lambda(config[CONF_CHECKSUM_LAMBDA],
+        template_ = await cg.process_lambda(config[CONF_CHECKSUM_LAMBDA],
                                             [(uint8_ptr_const, 'data'), (num_t_const, 'len')],
                                             return_type=cg.uint8)
         cg.add(var.set_checksum_lambda(template_))
     if CONF_CHECKSUM in config:
         data = config[CONF_CHECKSUM]
         if cg.is_template(data):
-            template_ = yield cg.process_lambda(data,
+            template_ = await cg.process_lambda(data,
                                                 [(uint8_ptr_const, 'data'), (num_t_const, 'len')],
                                                 return_type=cg.uint8)
             cg.add(var.set_checksum_lambda(template_))
@@ -130,7 +130,7 @@ def to_code(config):
     if CONF_CHECKSUM2 in config:
         data = config[CONF_CHECKSUM2]
         if cg.is_template(data):
-            template_ = yield cg.process_lambda(data,
+            template_ = await cg.process_lambda(data,
                                                 [(uint8_ptr_const, 'data'), (num_t_const, 'len'), (uint8_const, 'checksum1')],
                                                 return_type=cg.uint8)
             cg.add(var.set_checksum2_lambda(template_))
@@ -138,12 +138,12 @@ def to_code(config):
             cg.add(var.set_checksum2(data))
 
     if CONF_STATE_RESPONSE in config:
-        state_response = yield state_hex_expression(config[CONF_STATE_RESPONSE])
+        state_response = await state_hex_expression(config[CONF_STATE_RESPONSE])
         cg.add(var.set_state_response(state_response))
 
     if CONF_PACKET_MONITOR in config:
         sm = cg.new_Pvariable(config[CONF_PACKET_MONITOR_ID])
-        yield sm
+        await sm
         for conf in config[CONF_PACKET_MONITOR]:
             data = conf[CONF_DATA]
             and_operator = conf[CONF_AND_OPERATOR]
@@ -175,85 +175,85 @@ STATE_NUM_SCHEMA = cv.Schema({
 HEX_SCHEMA_REGISTRY = SimpleRegistry()
 
 @coroutine
-def register_rs485_device(var, config):
-    paren = yield cg.get_variable(config[CONF_RS485_ID])
+async def register_rs485_device(var, config):
+    paren = await cg.get_variable(config[CONF_RS485_ID])
     cg.add(paren.register_listener(var))
-    yield var
+    await var
 
-    device = yield state_hex_expression(config[CONF_DEVICE])
+    device = await state_hex_expression(config[CONF_DEVICE])
     cg.add(var.set_device(device))
 
     if CONF_SUB_DEVICE in config:
-        sub_device = yield state_hex_expression(config[CONF_SUB_DEVICE])
+        sub_device = await state_hex_expression(config[CONF_SUB_DEVICE])
         cg.add(var.set_sub_device(sub_device))
 
     if CONF_STATE_ON in config:
-        state_on = yield state_hex_expression(config[CONF_STATE_ON])
+        state_on = await state_hex_expression(config[CONF_STATE_ON])
         cg.add(var.set_state_on(state_on))
 
     if CONF_STATE_OFF in config:
-        state_off = yield state_hex_expression(config[CONF_STATE_OFF])
+        state_off = await state_hex_expression(config[CONF_STATE_OFF])
         cg.add(var.set_state_off(state_off))
 
     if CONF_COMMAND_ON in config:
         data = config[CONF_COMMAND_ON]
         if cg.is_template(data):
-            command_on = yield cg.templatable(data, [], cmd_hex_t)
+            command_on = await cg.templatable(data, [], cmd_hex_t)
             cg.add(var.set_command_on(command_on))
         else:
-            command_on = yield command_hex_expression(config[CONF_COMMAND_ON])
+            command_on = await command_hex_expression(config[CONF_COMMAND_ON])
             cg.add(var.set_command_on(command_on))
 
     if CONF_COMMAND_OFF in config:
         data = config[CONF_COMMAND_OFF]
         if cg.is_template(data):
-            command_off = yield cg.templatable(data, [], cmd_hex_t)
+            command_off = await cg.templatable(data, [], cmd_hex_t)
             cg.add(var.set_command_off(command_off))
         else:
-            command_off = yield command_hex_expression(config[CONF_COMMAND_OFF])
+            command_off = await command_hex_expression(config[CONF_COMMAND_OFF])
             cg.add(var.set_command_off(command_off))
 
     if CONF_COMMAND_STATE in config:
-        command_state = yield command_hex_expression(config[CONF_COMMAND_STATE])
+        command_state = await command_hex_expression(config[CONF_COMMAND_STATE])
         cg.add(var.set_command_state(command_state))
 
 
 
 @coroutine
-def state_hex_expression(conf):
+async def state_hex_expression(conf):
     if conf is None:
         return
     data = conf[CONF_DATA]
     and_operator = conf[CONF_AND_OPERATOR]
     inverted = conf[CONF_INVERTED]
     offset = conf[CONF_OFFSET]
-    yield offset, and_operator, inverted, data
+    await offset, and_operator, inverted, data
 
 @coroutine
-def command_hex_expression(conf):
+async def command_hex_expression(conf):
     if conf is None:
         return
     data = conf[CONF_DATA]
     if CONF_ACK in conf:
         ack = conf[CONF_ACK]
-        yield data, ack
+        await data, ack
     else:
-        yield data
+        await data
 
 @automation.register_action('rs485.write', RS485WriteAction, cv.maybe_simple_value({
     cv.GenerateID(): cv.use_id(RS485Component),
     cv.Required(CONF_DATA): cv.templatable(validate_hex_data),
     cv.Optional(CONF_ACK, default=[]): validate_hex_data
 }, key=CONF_DATA))
-def rs485_write_to_code(config, action_id, template_arg, args):
+async def rs485_write_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
-    yield cg.register_parented(var, config[CONF_ID])
+    await cg.register_parented(var, config[CONF_ID])
     data = config[CONF_DATA]
 
     if cg.is_template(data):
-        templ = yield cg.templatable(data, args, cmd_hex_t)
+        templ = await cg.templatable(data, args, cmd_hex_t)
         cg.add(var.set_data_template(templ))
     else:
-        cmd = yield command_hex_expression(config)
+        cmd = await command_hex_expression(config)
         cg.add(var.set_data_static(cmd))
-    yield var
+    await var
