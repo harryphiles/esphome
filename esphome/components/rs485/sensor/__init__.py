@@ -33,7 +33,7 @@ async def to_code(config):
         cg.add(var.set_template(template_))
     if CONF_DATA in config:
         data = config[CONF_DATA]
-        data_ = await data[CONF_OFFSET], data[CONF_LENGTH], data[CONF_PRECISION]
+        data_ = data[CONF_OFFSET], data[CONF_LENGTH], data[CONF_PRECISION]
         cg.add(var.set_state_num(data_))
         config[CONF_ACCURACY_DECIMALS] = data[CONF_PRECISION]
 

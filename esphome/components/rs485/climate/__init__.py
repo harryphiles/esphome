@@ -54,7 +54,7 @@ async def to_code(config):
         templ = await cg.templatable(state, [(uint8_ptr_const, 'data'), (num_t_const, 'len')], cg.float_)
         cg.add(var.set_state_target(templ))
     else:
-        args = await state[CONF_OFFSET], state[CONF_LENGTH], state[CONF_PRECISION]
+        args = state[CONF_OFFSET], state[CONF_LENGTH], state[CONF_PRECISION]
         cg.add(var.set_state_target(args))
     
     if CONF_SENSOR in config:
@@ -67,7 +67,7 @@ async def to_code(config):
             templ = await cg.templatable(state, [(uint8_ptr_const, 'data'), (num_t_const, 'len')], cg.float_)
             cg.add(var.set_state_current(templ))
         else:
-            args = await state[CONF_OFFSET], state[CONF_LENGTH], state[CONF_PRECISION]
+            args = state[CONF_OFFSET], state[CONF_LENGTH], state[CONF_PRECISION]
             cg.add(var.set_state_current(args))
 
 

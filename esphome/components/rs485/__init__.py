@@ -178,7 +178,6 @@ HEX_SCHEMA_REGISTRY = SimpleRegistry()
 async def register_rs485_device(var, config):
     paren = await cg.get_variable(config[CONF_RS485_ID])
     cg.add(paren.register_listener(var))
-    await var
 
     device = await state_hex_expression(config[CONF_DEVICE])
     cg.add(var.set_device(device))
@@ -227,7 +226,7 @@ async def state_hex_expression(conf):
     and_operator = conf[CONF_AND_OPERATOR]
     inverted = conf[CONF_INVERTED]
     offset = conf[CONF_OFFSET]
-    await offset, and_operator, inverted, data
+    return offset, and_operator, inverted, data
 
 @coroutine
 async def command_hex_expression(conf):
@@ -236,9 +235,9 @@ async def command_hex_expression(conf):
     data = conf[CONF_DATA]
     if CONF_ACK in conf:
         ack = conf[CONF_ACK]
-        await data, ack
+        return data, ack
     else:
-        await data
+        return data
 
 @automation.register_action('rs485.write', RS485WriteAction, cv.maybe_simple_value({
     cv.GenerateID(): cv.use_id(RS485Component),
@@ -256,4 +255,4 @@ async def rs485_write_to_code(config, action_id, template_arg, args):
     else:
         cmd = await command_hex_expression(config)
         cg.add(var.set_data_static(cmd))
-    await var
+    return var
