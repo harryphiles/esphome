@@ -11,7 +11,7 @@ from ..const import CONF_RS485_ID, CONF_SUB_DEVICE, CONF_COMMAND_STATE, CONF_LEN
 DEPENDENCIES = ['rs485']
 RS485Sensor = rs485_ns.class_('RS485Sensor', sensor.Sensor, cg.PollingComponent)
 
-CONFIG_SCHEMA = cv.All(sensor.sensor_schema(UNIT_EMPTY, ICON_EMPTY, 1).extend({
+CONFIG_SCHEMA = cv.All(sensor.sensor_schema(unit_of_measurement=UNIT_EMPTY, icon=ICON_EMPTY, accuracy_decimals=1).extend({
     cv.GenerateID(): cv.declare_id(RS485Sensor),
     cv.GenerateID(CONF_RS485_ID): cv.use_id(RS485Component),
     cv.Required(CONF_DEVICE): state_hex_schema,
