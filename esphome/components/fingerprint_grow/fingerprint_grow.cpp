@@ -4,7 +4,7 @@
 namespace esphome {
 namespace fingerprint_grow {
 
-static const char* TAG = "fingerprint_grow";
+static const char *const TAG = "fingerprint_grow";
 
 // Based on Adafruit's library: https://github.com/adafruit/Adafruit-Fingerprint-Sensor-Library
 
@@ -15,7 +15,7 @@ void FingerprintGrowComponent::update() {
   }
 
   if (this->sensing_pin_ != nullptr) {
-    if (this->sensing_pin_->digital_read() == HIGH) {
+    if (this->sensing_pin_->digital_read()) {
       ESP_LOGV(TAG, "No touch sensing");
       this->waiting_removal_ = false;
       return;
@@ -278,10 +278,11 @@ void FingerprintGrowComponent::delete_all_fingerprints() {
 
 void FingerprintGrowComponent::led_control(bool state) {
   ESP_LOGD(TAG, "Setting LED");
-  if (state)
+  if (state) {
     this->data_ = {LED_ON};
-  else
+  } else {
     this->data_ = {LED_OFF};
+  }
   switch (this->send_command_()) {
     case OK:
       ESP_LOGD(TAG, "LED set");

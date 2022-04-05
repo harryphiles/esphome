@@ -4,7 +4,7 @@
 namespace esphome {
 namespace cs5460a {
 
-static const char *TAG = "cs5460a";
+static const char *const TAG = "cs5460a";
 
 void CS5460AComponent::write_register_(enum CS5460ARegister addr, uint32_t value) {
   this->write_byte(CMD_WRITE | (addr << 1));
@@ -102,8 +102,6 @@ void CS5460AComponent::hw_init_() {
 
 /* Doesn't reset the register values etc., just restarts the "computation cycle" */
 void CS5460AComponent::restart_() {
-  int cnt;
-
   this->enable();
   /* Stop running conversion, wake up if needed */
   this->write_byte(CMD_POWER_UP);

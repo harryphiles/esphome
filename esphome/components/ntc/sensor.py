@@ -5,14 +5,12 @@ import esphome.codegen as cg
 from esphome.components import sensor
 from esphome.const import (
     CONF_CALIBRATION,
-    CONF_ID,
     CONF_REFERENCE_RESISTANCE,
     CONF_REFERENCE_TEMPERATURE,
     CONF_SENSOR,
     CONF_TEMPERATURE,
     CONF_VALUE,
     DEVICE_CLASS_TEMPERATURE,
-    ICON_EMPTY,
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
 )
@@ -106,9 +104,7 @@ def process_calibration(value):
         a, b, c = calc_steinhart_hart(value)
     else:
         raise cv.Invalid(
-            "Calibration parameter accepts either a list for steinhart-hart "
-            "calibration, or mapping for b-constant calibration, "
-            "not {}".format(type(value))
+            f"Calibration parameter accepts either a list for steinhart-hart calibration, or mapping for b-constant calibration, not {type(value)}"
         )
 
     return {
@@ -120,11 +116,14 @@ def process_calibration(value):
 
 CONFIG_SCHEMA = (
     sensor.sensor_schema(
-        UNIT_CELSIUS, ICON_EMPTY, 1, DEVICE_CLASS_TEMPERATURE, STATE_CLASS_MEASUREMENT
+        NTC,
+        unit_of_measurement=UNIT_CELSIUS,
+        accuracy_decimals=1,
+        device_class=DEVICE_CLASS_TEMPERATURE,
+        state_class=STATE_CLASS_MEASUREMENT,
     )
     .extend(
         {
-            cv.GenerateID(): cv.declare_id(NTC),
             cv.Required(CONF_SENSOR): cv.use_id(sensor.Sensor),
             cv.Required(CONF_CALIBRATION): process_calibration,
         }
@@ -134,9 +133,8 @@ CONFIG_SCHEMA = (
 
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
+    var = await sensor.new_sensor(config)
     await cg.register_component(var, config)
-    await sensor.register_sensor(var, config)
 
     sens = await cg.get_variable(config[CONF_SENSOR])
     cg.add(var.set_sensor(sens))

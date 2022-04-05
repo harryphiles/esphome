@@ -11,12 +11,13 @@ namespace teleinfo {
  */
 static const uint8_t MAX_TAG_SIZE = 64;
 static const uint16_t MAX_VAL_SIZE = 256;
-static const uint16_t MAX_BUF_SIZE = 1024;
+static const uint16_t MAX_BUF_SIZE = 2048;
+static const uint16_t MAX_TIMESTAMP_SIZE = 14;
 
 class TeleInfoListener {
  public:
   std::string tag;
-  virtual void publish_val(std::string val){};
+  virtual void publish_val(const std::string &val){};
 };
 class TeleInfo : public PollingComponent, public uart::UARTDevice {
  public:
@@ -36,6 +37,7 @@ class TeleInfo : public PollingComponent, public uart::UARTDevice {
   uint32_t buf_index_{0};
   char tag_[MAX_TAG_SIZE];
   char val_[MAX_VAL_SIZE];
+  char timestamp_[MAX_TIMESTAMP_SIZE];
   enum State {
     OFF,
     ON,
@@ -44,7 +46,7 @@ class TeleInfo : public PollingComponent, public uart::UARTDevice {
   } state_{OFF};
   bool read_chars_until_(bool drop, uint8_t c);
   bool check_crc_(const char *grp, const char *grp_end);
-  void publish_value_(std::string tag, std::string val);
+  void publish_value_(const std::string &tag, const std::string &val);
 };
 }  // namespace teleinfo
 }  // namespace esphome

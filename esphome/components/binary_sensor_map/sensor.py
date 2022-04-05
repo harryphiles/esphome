@@ -3,16 +3,12 @@ import esphome.config_validation as cv
 
 from esphome.components import sensor, binary_sensor
 from esphome.const import (
-    CONF_ID,
     CONF_CHANNELS,
     CONF_VALUE,
     CONF_TYPE,
-    DEVICE_CLASS_EMPTY,
-    UNIT_EMPTY,
     ICON_CHECK_CIRCLE_OUTLINE,
     CONF_BINARY_SENSOR,
     CONF_GROUP,
-    STATE_CLASS_NONE,
 )
 
 DEPENDENCIES = ["binary_sensor"]
@@ -35,14 +31,11 @@ entry = {
 CONFIG_SCHEMA = cv.typed_schema(
     {
         CONF_GROUP: sensor.sensor_schema(
-            UNIT_EMPTY,
-            ICON_CHECK_CIRCLE_OUTLINE,
-            0,
-            DEVICE_CLASS_EMPTY,
-            STATE_CLASS_NONE,
+            BinarySensorMap,
+            icon=ICON_CHECK_CIRCLE_OUTLINE,
+            accuracy_decimals=0,
         ).extend(
             {
-                cv.GenerateID(): cv.declare_id(BinarySensorMap),
                 cv.Required(CONF_CHANNELS): cv.All(
                     cv.ensure_list(entry), cv.Length(min=1)
                 ),
@@ -54,9 +47,8 @@ CONFIG_SCHEMA = cv.typed_schema(
 
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
+    var = await sensor.new_sensor(config)
     await cg.register_component(var, config)
-    await sensor.register_sensor(var, config)
 
     constant = SENSOR_MAP_TYPES[config[CONF_TYPE]]
     cg.add(var.set_sensor_type(constant))

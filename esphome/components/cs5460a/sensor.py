@@ -9,7 +9,6 @@ from esphome.const import (
     UNIT_VOLT,
     UNIT_AMPERE,
     UNIT_WATT,
-    ICON_EMPTY,
     DEVICE_CLASS_POWER,
     DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_VOLTAGE,
@@ -50,8 +49,8 @@ def validate_config(config):
     if current_gain == 0.0 or voltage_gain == 0.0:
         raise cv.Invalid("The gains can't be zero")
 
-    max_energy = (0.25 * 0.25 / 3600 / (2 ** -4)) / (voltage_gain * current_gain)
-    min_energy = (0.25 * 0.25 / 3600 / (2 ** 18)) / (voltage_gain * current_gain)
+    max_energy = (0.25 * 0.25 / 3600 / (2**-4)) / (voltage_gain * current_gain)
+    min_energy = (0.25 * 0.25 / 3600 / (2**18)) / (voltage_gain * current_gain)
     mech_min_energy = (0.25 * 0.25 / 3600 / 7.8) / (voltage_gain * current_gain)
     if pulse_energy < min_energy or pulse_energy > max_energy:
         raise cv.Invalid(
@@ -80,13 +79,19 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_VOLTAGE_HPF, default=True): cv.boolean,
             cv.Optional(CONF_PULSE_ENERGY, default=10.0): validate_energy,
             cv.Optional(CONF_VOLTAGE): sensor.sensor_schema(
-                UNIT_VOLT, ICON_EMPTY, 0, DEVICE_CLASS_VOLTAGE
+                unit_of_measurement=UNIT_VOLT,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_VOLTAGE,
             ),
             cv.Optional(CONF_CURRENT): sensor.sensor_schema(
-                UNIT_AMPERE, ICON_EMPTY, 1, DEVICE_CLASS_CURRENT
+                unit_of_measurement=UNIT_AMPERE,
+                accuracy_decimals=1,
+                device_class=DEVICE_CLASS_CURRENT,
             ),
             cv.Optional(CONF_POWER): sensor.sensor_schema(
-                UNIT_WATT, ICON_EMPTY, 0, DEVICE_CLASS_POWER
+                unit_of_measurement=UNIT_WATT,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_POWER,
             ),
         }
     )

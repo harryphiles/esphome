@@ -6,10 +6,6 @@ from esphome.const import (
     CONF_ID,
     CONF_LAMBDA,
     CONF_STATE,
-    DEVICE_CLASS_EMPTY,
-    ICON_EMPTY,
-    STATE_CLASS_NONE,
-    UNIT_EMPTY,
 )
 from .. import template_ns
 
@@ -19,15 +15,11 @@ TemplateSensor = template_ns.class_(
 
 CONFIG_SCHEMA = (
     sensor.sensor_schema(
-        UNIT_EMPTY,
-        ICON_EMPTY,
-        1,
-        DEVICE_CLASS_EMPTY,
-        STATE_CLASS_NONE,
+        TemplateSensor,
+        accuracy_decimals=1,
     )
     .extend(
         {
-            cv.GenerateID(): cv.declare_id(TemplateSensor),
             cv.Optional(CONF_LAMBDA): cv.returning_lambda,
         }
     )
@@ -36,9 +28,8 @@ CONFIG_SCHEMA = (
 
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
+    var = await sensor.new_sensor(config)
     await cg.register_component(var, config)
-    await sensor.register_sensor(var, config)
 
     if CONF_LAMBDA in config:
         template_ = await cg.process_lambda(

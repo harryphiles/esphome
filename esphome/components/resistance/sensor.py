@@ -3,11 +3,9 @@ import esphome.config_validation as cv
 from esphome.components import sensor
 from esphome.const import (
     CONF_SENSOR,
-    DEVICE_CLASS_EMPTY,
     STATE_CLASS_MEASUREMENT,
     UNIT_OHM,
     ICON_FLASH,
-    CONF_ID,
 )
 
 resistance_ns = cg.esphome_ns.namespace("resistance")
@@ -25,11 +23,14 @@ CONFIGURATIONS = {
 
 CONFIG_SCHEMA = (
     sensor.sensor_schema(
-        UNIT_OHM, ICON_FLASH, 1, DEVICE_CLASS_EMPTY, STATE_CLASS_MEASUREMENT
+        ResistanceSensor,
+        unit_of_measurement=UNIT_OHM,
+        icon=ICON_FLASH,
+        accuracy_decimals=1,
+        state_class=STATE_CLASS_MEASUREMENT,
     )
     .extend(
         {
-            cv.GenerateID(): cv.declare_id(ResistanceSensor),
             cv.Required(CONF_SENSOR): cv.use_id(sensor.Sensor),
             cv.Required(CONF_CONFIGURATION): cv.enum(CONFIGURATIONS, upper=True),
             cv.Required(CONF_RESISTOR): cv.resistance,
@@ -41,9 +42,8 @@ CONFIG_SCHEMA = (
 
 
 async def to_code(config):
-    var = cg.new_Pvariable(config[CONF_ID])
+    var = await sensor.new_sensor(config)
     await cg.register_component(var, config)
-    await sensor.register_sensor(var, config)
 
     sens = await cg.get_variable(config[CONF_SENSOR])
     cg.add(var.set_sensor(sens))
