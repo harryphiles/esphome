@@ -14,11 +14,18 @@ void RS485Climate::dump_config() {
 climate::ClimateTraits RS485Climate::traits() {
   auto traits = climate::ClimateTraits();
   traits.set_supports_current_temperature(true);
-  traits.set_supports_auto_mode(this->supports_auto_);
-  traits.set_supports_cool_mode(this->supports_cool_);
-  traits.set_supports_heat_mode(this->supports_heat_);
+  if(this->supports_auto_)
+    traits.add_supported_mode(climate::CLIMATE_MODE_AUTO);
+  if(this->supports_cool_)
+    traits.add_supported_mode(climate::CLIMATE_MODE_COOL);
+  if(this->supports_heat_)
+    traits.add_supported_mode(climate::CLIMATE_MODE_HEAT);
+  if(this->supports_away_)
+    traits.set_supported_presets({climate::CLIMATE_PRESET_HOME, climate::CLIMATE_PRESET_AWAY});
+  else
+    traits.set_supported_presets({climate::CLIMATE_PRESET_NONE});
+
   traits.set_supports_two_point_target_temperature(false);
-  traits.set_supports_away(this->supports_away_);
   traits.set_visual_min_temperature(5);
   traits.set_visual_max_temperature(40);
   traits.set_visual_temperature_step(1);
@@ -69,10 +76,15 @@ void RS485Climate::publish(const uint8_t *data, const num_t len) {
       changed = true;
     }
   }
+
   // away
   if(this->state_away_.has_value()) {
-    if(this->away != compare(&data[0], len, &state_away_.value())) {
-      this->away = !this->away;
+    if(compare(&data[0], len, &state_away_.value()) && this->preset != climate::CLIMATE_PRESET_AWAY) {
+      this->preset = climate::CLIMATE_PRESET_AWAY;
+      changed = true;
+    }
+    else if(!compare(&data[0], len, &state_away_.value()) && this->preset != climate::CLIMATE_PRESET_HOME) {
+      this->preset = climate::CLIMATE_PRESET_HOME;
       changed = true;
     }
   }

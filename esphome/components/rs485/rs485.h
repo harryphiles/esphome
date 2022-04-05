@@ -5,7 +5,7 @@
 #include <queue>
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
-#include "esphome/core/esphal.h"
+#include "esphome/core/hal.h"
 
 #define BUFFER_SIZE 128
 #define RX_ENABLE false

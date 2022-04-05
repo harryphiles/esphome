@@ -33,7 +33,7 @@ void RS485Component::dump_config() {
 
 void RS485Component::setup() {
     #ifdef ARDUINO_ARCH_ESP8266
-        byte serialconfig = 0x10;
+        uint8_t serialconfig = 0x10;
     #endif
     #ifdef ARDUINO_ARCH_ESP32
         uint32_t serialconfig = 0x8000010;
