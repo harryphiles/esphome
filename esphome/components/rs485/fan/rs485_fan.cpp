@@ -96,20 +96,26 @@ void RS485Fan::control(const fan::FanCall &call) {
 void RS485Fan::publish(const uint8_t *data, const num_t len) {
   // Speed high
   if(compare(&data[0], len, &state_speed_high_)) {
-      this->speed = 3;
-      this->publish_state();
+      if(this->speed != 3) {
+        this->speed = 3;
+        this->publish_state();
+      }
       return;
   }
   // Speed medium
   else if(compare(&data[0], len, &state_speed_medium_)) {
-      this->speed = 2;
-      this->publish_state();
+      if(this->speed != 2) {
+        this->speed = 2;
+        this->publish_state();
+      }
       return;
   }
   // Speed low
   else if(compare(&data[0], len, &state_speed_low_)) {
-      this->speed = 1;
-      this->publish_state();
+      if(this->speed != 1) {
+        this->speed = 1;
+        this->publish_state();
+      }
       return;
   }
   ESP_LOGW(TAG, "'%s' State not found: %s", device_name_->c_str(), hexencode(&data[0], len).c_str());

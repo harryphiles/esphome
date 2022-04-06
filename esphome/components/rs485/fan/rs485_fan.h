@@ -24,7 +24,13 @@ class RS485Fan : public RS485Device, public fan::Fan {
       this->command_speed_high_ = command;
     }
     void publish(const uint8_t *data, const num_t len) override;
-    bool publish(bool state) override { this->state = state; this->publish_state(); return !state; }
+    bool publish(bool state) override {
+      if(this->state != state) {
+        this->state = state;
+        this->publish_state();
+      }
+      return !state;
+    }
     fan::FanTraits get_traits() override;
 
   protected:
