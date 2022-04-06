@@ -156,9 +156,9 @@ void RS485Climate::control(const climate::ClimateCall &call) {
   }
   
   // Set away
-  if(this->command_away_.has_value() && call.get_away().has_value() && this->away != *call.get_away()) {
-    this->away = *call.get_away();
-    if(this->away) write_with_header(&this->command_away_.value());
+  if(this->command_away_.has_value() && call.get_preset().has_value() && this->preset != *call.get_preset()) {
+    this->preset = *call.get_preset();
+    if(this->preset == climate::CLIMATE_PRESET_AWAY) write_with_header(&this->command_away_.value());
     else if(this->command_home_.has_value()) write_with_header(&this->command_home_.value());
     else if(this->mode == climate::CLIMATE_MODE_OFF) write_with_header(this->get_command_off());
     else if(this->mode == climate::CLIMATE_MODE_HEAT && this->command_heat_.has_value()) write_with_header(&this->command_heat_.value());
