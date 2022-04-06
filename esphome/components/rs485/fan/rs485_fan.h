@@ -1,16 +1,16 @@
 #pragma once
 
 #include "esphome/components/rs485/rs485.h"
-#include "esphome/components/fan/fan_state.h"
+#include "esphome/components/fan/fan.h"
 
 namespace esphome {
 namespace rs485 {
 
-class RS485Fan : public RS485Device {
+class RS485Fan : public RS485Device, public fan::Fan {
   public:
-    RS485Fan(fan::FanState *fan) : fan_(fan) { this->device_name_ = &fan->get_name(); }
-    void dump_config() override;
+    RS485Fan() { device_name_ = &this->name_; }
     void setup() override;
+    void dump_config() override;
     void set_speed_low(hex_t state, cmd_hex_t command) {
       this->state_speed_low_ = state;
       this->command_speed_low_ = command;
@@ -23,17 +23,12 @@ class RS485Fan : public RS485Device {
       this->state_speed_high_ = state;
       this->command_speed_high_ = command;
     }
-    void perform();
-
     void publish(const uint8_t *data, const num_t len) override;
-    bool publish(bool state) override { publish_state(state); return !state; }
-
+    bool publish(bool state) override { this->state = state; this->publish_state(); return !state; }
+    fan::FanTraits get_traits() override;
 
   protected:
-    fan::FanState *fan_;
-    int speed_{0};
-    bool support_speed_{false};
-    bool state_{false};
+    void control(const fan::FanCall &call) override;
 
     hex_t state_speed_low_{};
     hex_t state_speed_medium_{};
@@ -41,9 +36,8 @@ class RS485Fan : public RS485Device {
     cmd_hex_t command_speed_low_{};
     cmd_hex_t command_speed_medium_{};
     cmd_hex_t command_speed_high_{};
+    int speed_count_{0};
 
-    void publish_state(bool state);
-    void publish_state(int speed);
 };
 
 }  // namespace rs485

@@ -2,12 +2,13 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import fan, rs485
 from esphome.const import CONF_OUTPUT_ID, CONF_SPEED, CONF_LOW, CONF_MEDIUM, CONF_HIGH, \
-                          CONF_STATE, CONF_COMMAND, CONF_UPDATE_INTERVAL
+                          CONF_STATE, CONF_COMMAND, CONF_OSCILLATION_OUTPUT, CONF_DIRECTION_OUTPUT, \
+                          CONF_OUTPUT
 from .. import rs485_ns, state_hex_schema, command_hex_schema, state_hex_expression, \
                command_hex_expression
 
 DEPENDENCIES = ['rs485']
-RS485Fan = rs485_ns.class_('RS485Fan', cg.Component)
+RS485Fan = rs485_ns.class_('RS485Fan', cg.Component, fan.Fan)
 
 SPEED_SCHEMA = cv.Schema({
     cv.Optional(CONF_STATE, default={}): state_hex_schema,
@@ -21,17 +22,17 @@ CONFIG_SCHEMA = fan.FAN_SCHEMA.extend({
         cv.Optional(CONF_MEDIUM): SPEED_SCHEMA,
         cv.Optional(CONF_HIGH): SPEED_SCHEMA
     }),
+    cv.Optional(CONF_OUTPUT): cv.invalid("Not support output."),
+    cv.Optional(CONF_OSCILLATION_OUTPUT): cv.invalid("Not support oscillation."),
+    cv.Optional(CONF_DIRECTION_OUTPUT): cv.invalid("Not support direction.")
 }).extend(rs485.RS485_DEVICE_SCHEMA).extend(cv.COMPONENT_SCHEMA)
 
 
 async def to_code(config):
-    interval = config[CONF_UPDATE_INTERVAL]
-    del config[CONF_UPDATE_INTERVAL]
-    fan_state = await fan.create_fan_state(config)
-
-    config[CONF_UPDATE_INTERVAL] = interval
-    var = cg.new_Pvariable(config[CONF_OUTPUT_ID], fan_state)
+    var = cg.new_Pvariable(config[CONF_OUTPUT_ID])
     await cg.register_component(var, config)
+    await fan.register_fan(var, config)
+
     speeds = config[CONF_SPEED]
     if CONF_LOW in speeds:
         speed = speeds[CONF_LOW]

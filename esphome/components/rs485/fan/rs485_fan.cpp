@@ -1,6 +1,5 @@
 #include "rs485_fan.h"
 #include "esphome/core/log.h"
-#include "esphome/components/api/api_server.h"
 
 namespace esphome {
 namespace rs485 {
@@ -11,7 +10,7 @@ void RS485Fan::dump_config() {
   ESP_LOGCONFIG(TAG, "RS485 Fan '%s':", device_name_->c_str());
   dump_rs485_device_config(TAG);
   
-  ESP_LOGCONFIG(TAG, "  Support Speed: %s", YESNO(support_speed_));
+  ESP_LOGCONFIG(TAG, "  Support Speed: %s", YESNO(this->speed_count_ > 0));
   
   if(state_speed_high_.data.size() > 0)
     ESP_LOGCONFIG(TAG, "  State Speed_high: %s, offset: %d", hexencode(&state_speed_high_.data[0], state_speed_high_.data.size()).c_str(), state_speed_high_.offset);
@@ -35,27 +34,27 @@ void RS485Fan::dump_config() {
   if(command_speed_low_.ack.size() > 0)
     ESP_LOGCONFIG(TAG, "  Command Speed_low Ack: %s", hexencode(&command_speed_low_.ack[0], command_speed_low_.ack.size()).c_str());
 
-
 }
+
+fan::FanTraits RS485Fan::get_traits() {
+  return fan::FanTraits(false, this->speed_count_ > 0, false, this->speed_count_ > 0 ? 3 : 0);
+}
+
 void RS485Fan::setup() {
-  bool oscillation = false;
-  this->support_speed_ = command_speed_low_.data.size() > 0 || command_speed_medium_.data.size() > 0 || command_speed_high_.data.size() > 0;
-  auto traits = fan::FanTraits(oscillation, this->support_speed_, false, this->support_speed_ ? 3 : 1);
-  this->fan_->set_traits(traits);
-  this->fan_->add_on_state_callback([this]() { this->perform(); });
+  if(command_speed_low_.data.size() > 0 ) this->speed_count_++;
+  if(command_speed_medium_.data.size() > 0) this->speed_count_++;
+  if(command_speed_high_.data.size() > 0) this->speed_count_++;
 }
 
-void RS485Fan::perform() {
-  // ON_OFF
-  if(this->fan_->state != this->state_) {
-    this->state_ = this->fan_->state;
-    ESP_LOGD(TAG, "'%s' Turning %s.", device_name_->c_str(), this->state_ ? "ON" : "OFF");
-    write_with_header(this->state_ ? this->get_command_on() : this->get_command_off());
+void RS485Fan::control(const fan::FanCall &call) {
+  if (call.get_state().has_value()) {
+    this->state = *call.get_state();
+    ESP_LOGD(TAG, "'%s' Turning %s.", device_name_->c_str(), this->state ? "ON" : "OFF");
+    write_with_header(this->state ? this->get_command_on() : this->get_command_off());
   }
-  // Speed
-  else if (this->support_speed_ && this->state_ && this->speed_ != this->fan_->speed) {
-    this->speed_ = this->fan_->speed;
-    switch (this->speed_) {
+  if (call.get_speed().has_value()) {
+    this->speed = *call.get_speed();
+    switch (this->speed) {
       case 1:
         if(command_speed_low_.data.size() == 0) {
           ESP_LOGW(TAG, "'%s' Not support speed: LOW", device_name_->c_str());
@@ -82,64 +81,39 @@ void RS485Fan::perform() {
         break;
     }
   }
+  if (call.get_oscillating().has_value()) {
+    this->oscillating = *call.get_oscillating();
+    ESP_LOGW(TAG, "'%s' Not support oscillation", device_name_->c_str());
+  }
+  if (call.get_direction().has_value()) {
+    this->direction = *call.get_direction();
+    ESP_LOGW(TAG, "'%s' Not support direction", device_name_->c_str());
+  }
+
+  this->publish_state();
 }
 
 void RS485Fan::publish(const uint8_t *data, const num_t len) {
   // Speed high
   if(compare(&data[0], len, &state_speed_high_)) {
-      publish_state(3);
+      this->speed = 3;
+      this->publish_state();
       return;
   }
   // Speed medium
   else if(compare(&data[0], len, &state_speed_medium_)) {
-      publish_state(2);
+      this->speed = 2;
+      this->publish_state();
       return;
   }
   // Speed low
   else if(compare(&data[0], len, &state_speed_low_)) {
-      publish_state(1);
+      this->speed = 1;
+      this->publish_state();
       return;
   }
   ESP_LOGW(TAG, "'%s' State not found: %s", device_name_->c_str(), hexencode(&data[0], len).c_str());
 }
-
-void RS485Fan::publish_state(bool state) {
-  if(state == this->fan_->state) return;
-  
-  ESP_LOGD(TAG, "'%s' RS485Fan::publish_state(%s)", device_name_->c_str(), state ? "True" : "False");
-  this->state_ = state;
-  this->fan_->state = state;
-
-  if(api::global_api_server->is_connected())
-    api::global_api_server->on_fan_update(this->fan_);
-}
-
-void RS485Fan::publish_state(int speed) {
-  if(!this->state_ || speed == this->speed_) return;
-  else this->speed_ = speed;
-  
-  std::string  str_speed = "";
-  switch (this->speed_) {
-    case 1:
-      str_speed = "LOW";
-      break;
-    case 2:
-      str_speed = "MEDIUM";
-      break;
-    case 3:
-      str_speed = "HIGH";
-      break;
-    default:
-      str_speed = "Unknow";
-      break;
-  }
-  ESP_LOGD(TAG, "'%s' RS485Fan::publish_state(%s)", device_name_->c_str(), str_speed.c_str());
-  this->fan_->speed = speed;
-  
-  if(api::global_api_server->is_connected())
-    api::global_api_server->on_fan_update(this->fan_);
-}
-
 
 }  // namespace rs485
 }  // namespace esphome
