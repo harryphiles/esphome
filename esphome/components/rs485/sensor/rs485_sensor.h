@@ -9,7 +9,7 @@ namespace rs485 {
 
 class RS485Sensor : public sensor::Sensor, public RS485Device {
   public:
-    RS485Sensor() { device_name_ = &this->name_; }
+    RS485Sensor() { device_name_ = new std::string(this->name_.c_str()); }
     void dump_config() override;
     void publish(const uint8_t *data, const num_t len) override;
     bool publish(bool state) override { return false; }
