@@ -6,7 +6,7 @@
 namespace esphome {
 namespace rs485 {
 
-class RS485Switch : public switch_::Switch, public RS485Device {
+class RS485Switch : public switch::Switch, public RS485Device {
   public:
     RS485Switch() { this->device_name_ = &this->name_; }
     void dump_config() override;
