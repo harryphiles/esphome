@@ -10,7 +10,7 @@ namespace rs485 {
 
 class RS485Climate : public climate::Climate, public RS485Device {
   public:
-    RS485Climate() { this->device_name_ = &this->name_; }
+    RS485Climate() { device_name_ = new std::string(this->name_.c_str()); }
     void dump_config() override;
     void setup() override;
     void publish(const uint8_t *data, const num_t len) override;
