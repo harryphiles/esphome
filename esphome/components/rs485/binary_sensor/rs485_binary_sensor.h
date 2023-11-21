@@ -8,7 +8,7 @@ namespace rs485 {
 
 class RS485BinarySensor : public RS485Device, public binary_sensor::BinarySensor {
   public:
-    RS485BinarySensor() { device_name_ = &this->name_; }
+    RS485BinarySensor() { device_name_ = new std::string(this->name_.c_str()); }
     void dump_config() override;
     void publish(const uint8_t *data, const num_t len) override;
     bool publish(bool state) override { publish_state(state); return true; }
